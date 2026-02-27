@@ -3884,161 +3884,163 @@ class ParallaxBackground {
     // Sky (shared across themes)
     this.addLayer(0.02, (c,w,h) => this.buildSky(c,w,h,def.sky,theme));
     if (theme === "cave") {
-      this.addLayer(0.05, (c,w,h) => this.buildCaveFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildCaveMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildCaveNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildCaveFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildCaveFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildCaveMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildCaveNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildCaveFloor(c,w,h));
     } else if (theme === "forest") {
-      this.addLayer(0.05, (c,w,h) => this.buildForestFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildForestMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildForestNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildForestFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildForestFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildForestMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildForestNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildForestFloor(c,w,h));
     } else if (theme === "clouds") {
-      this.addLayer(0.05, (c,w,h) => this.buildCloudsFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildCloudsMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildCloudsNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildCloudsWisp(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildCloudsFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildCloudsMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildCloudsNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildCloudsWisp(c,w,h));
     } else if (theme === "lakeside") {
-      this.addLayer(0.05, (c,w,h) => this.buildLakeFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildLakeMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildLakeNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildLakeShore(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildLakeFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildLakeMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildLakeNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildLakeShore(c,w,h));
     } else if (theme === "shallow_water") {
-      this.addLayer(0.05, (c,w,h) => this.buildShallowFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildShallowMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildShallowNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildShallowFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildShallowFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildShallowMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildShallowNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildShallowFloor(c,w,h));
     } else if (theme === "deep_water") {
-      this.addLayer(0.05, (c,w,h) => this.buildDeepFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildDeepMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildDeepNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildDeepFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildDeepFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildDeepMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildDeepNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildDeepFloor(c,w,h));
     } else if (theme === "boss_water") {
-      this.addLayer(0.05, (c,w,h) => this.buildBossWaterFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildBossWaterMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildBossWaterNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildBossWaterFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildBossWaterFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildBossWaterMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildBossWaterNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildBossWaterFloor(c,w,h));
     } else if (theme === "treetop") {
-      this.addLayer(0.05, (c,w,h) => this.buildTreetopFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildTreetopMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildTreetopNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildTreetopFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildTreetopFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildTreetopMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildTreetopNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildTreetopFloor(c,w,h));
     } else if (theme === "treetop_high") {
-      this.addLayer(0.05, (c,w,h) => this.buildTreetopHighFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildTreetopHighMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildTreetopHighNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildTreetopHighFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildTreetopHighFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildTreetopHighMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildTreetopHighNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildTreetopHighFloor(c,w,h));
     } else if (theme === "treetop_dark") {
-      this.addLayer(0.05, (c,w,h) => this.buildTreetopDarkFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildTreetopDarkMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildTreetopDarkNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildTreetopDarkFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildTreetopDarkFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildTreetopDarkMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildTreetopDarkNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildTreetopDarkFloor(c,w,h));
     } else if (theme === "treetop_boss") {
-      this.addLayer(0.05, (c,w,h) => this.buildTreetopBossFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildTreetopBossMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildTreetopBossNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildTreetopBossFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildTreetopBossFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildTreetopBossMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildTreetopBossNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildTreetopBossFloor(c,w,h));
     } else if (theme === "fairy") {
-      this.addLayer(0.05, (c,w,h) => this.buildFairyFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildFairyMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildFairyNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildFairyFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildFairyFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildFairyMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildFairyNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildFairyFloor(c,w,h));
     } else if (theme === "fairy_mist") {
-      this.addLayer(0.05, (c,w,h) => this.buildFairyMistFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildFairyMistMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildFairyMistNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildFairyMistFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildFairyMistFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildFairyMistMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildFairyMistNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildFairyMistFloor(c,w,h));
     } else if (theme === "fairy_dark") {
-      this.addLayer(0.05, (c,w,h) => this.buildFairyDarkFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildFairyDarkMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildFairyDarkNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildFairyDarkFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildFairyDarkFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildFairyDarkMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildFairyDarkNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildFairyDarkFloor(c,w,h));
     } else if (theme === "fairy_boss") {
-      this.addLayer(0.05, (c,w,h) => this.buildFairyBossFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildFairyBossMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildFairyBossNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildFairyBossFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildFairyBossFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildFairyBossMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildFairyBossNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildFairyBossFloor(c,w,h));
     } else if (theme === "sewer") {
-      this.addLayer(0.05, (c,w,h) => this.buildSewerFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildSewerMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildSewerNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildSewerFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildSewerFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildSewerMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildSewerNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildSewerFloor(c,w,h));
     } else if (theme === "sewer_flood") {
-      this.addLayer(0.05, (c,w,h) => this.buildSewerFloodFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildSewerFloodMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildSewerFloodNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildSewerFloodFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildSewerFloodFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildSewerFloodMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildSewerFloodNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildSewerFloodFloor(c,w,h));
     } else if (theme === "sewer_deep") {
-      this.addLayer(0.05, (c,w,h) => this.buildSewerDeepFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildSewerDeepMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildSewerDeepNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildSewerDeepFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildSewerDeepFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildSewerDeepMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildSewerDeepNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildSewerDeepFloor(c,w,h));
     } else if (theme === "sewer_boss") {
-      this.addLayer(0.05, (c,w,h) => this.buildSewerBossFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildSewerBossMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildSewerBossNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildSewerBossFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildSewerBossFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildSewerBossMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildSewerBossNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildSewerBossFloor(c,w,h));
     } else if (theme === "desert") {
-      this.addLayer(0.05, (c,w,h) => this.buildDesertFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildDesertMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildDesertNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildDesertFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildDesertFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildDesertMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildDesertNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildDesertFloor(c,w,h));
     } else if (theme === "pyramid_interior") {
-      this.addLayer(0.05, (c,w,h) => this.buildPyramidFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildPyramidMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildPyramidNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildPyramidFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildPyramidFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildPyramidMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildPyramidNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildPyramidFloor(c,w,h));
     } else if (theme === "pyramid_boss") {
-      this.addLayer(0.05, (c,w,h) => this.buildPyramidBossFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildPyramidBossMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildPyramidBossNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildPyramidBossFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildPyramidBossFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildPyramidBossMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildPyramidBossNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildPyramidBossFloor(c,w,h));
     } else if (theme === "sky_kingdom") {
-      this.addLayer(0.05, (c,w,h) => this.buildSkyKingdomFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildSkyKingdomMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildSkyKingdomNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildSkyKingdomFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildSkyKingdomFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildSkyKingdomMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildSkyKingdomNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildSkyKingdomFloor(c,w,h));
     } else if (theme === "storm_peaks") {
-      this.addLayer(0.05, (c,w,h) => this.buildStormPeaksFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildStormPeaksMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildStormPeaksNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildStormPeaksFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildStormPeaksFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildStormPeaksMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildStormPeaksNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildStormPeaksFloor(c,w,h));
     } else if (theme === "star_bridge") {
-      this.addLayer(0.05, (c,w,h) => this.buildStarBridgeFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildStarBridgeMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildStarBridgeNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildStarBridgeFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildStarBridgeFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildStarBridgeMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildStarBridgeNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildStarBridgeFloor(c,w,h));
     } else if (theme === "sky_boss") {
-      this.addLayer(0.05, (c,w,h) => this.buildSkyBossFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildSkyBossMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildSkyBossNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildSkyBossFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildSkyBossFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildSkyBossMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildSkyBossNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildSkyBossFloor(c,w,h));
     } else if (theme === "rainbow_road") {
-      this.addLayer(0.05, (c,w,h) => this.buildRainbowRoadFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildRainbowRoadMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildRainbowRoadNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildRainbowRoadFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildRainbowRoadFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildRainbowRoadMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildRainbowRoadNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildRainbowRoadFloor(c,w,h));
     } else if (theme === "crystal_palace") {
-      this.addLayer(0.05, (c,w,h) => this.buildCrystalPalaceFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildCrystalPalaceMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildCrystalPalaceNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildCrystalPalaceFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildCrystalPalaceFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildCrystalPalaceMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildCrystalPalaceNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildCrystalPalaceFloor(c,w,h));
     } else if (theme === "prismatic_falls") {
-      this.addLayer(0.05, (c,w,h) => this.buildPrismaticFallsFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildPrismaticFallsMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildPrismaticFallsNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildPrismaticFallsFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildPrismaticFallsFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildPrismaticFallsMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildPrismaticFallsNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildPrismaticFallsFloor(c,w,h));
     } else if (theme === "rainbow_boss") {
-      this.addLayer(0.05, (c,w,h) => this.buildRainbowBossFar(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildRainbowBossMid(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildRainbowBossNear(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildRainbowBossFloor(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildRainbowBossFar(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildRainbowBossMid(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildRainbowBossNear(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildRainbowBossFloor(c,w,h));
     } else { // meadow (default)
-      this.addLayer(0.05, (c,w,h) => this.buildFarMountains(c,w,h));
-      this.addLayer(0.12, (c,w,h) => this.buildNearMountains(c,w,h));
-      this.addLayer(0.25, (c,w,h) => this.buildHills(c,w,h));
-      this.addLayer(0.4,  (c,w,h) => this.buildBushes(c,w,h));
+      this.addLayer(0.06, (c,w,h) => this.buildFarMountains(c,w,h));
+      this.addLayer(0.18, (c,w,h) => this.buildNearMountains(c,w,h));
+      this.addLayer(0.38, (c,w,h) => this.buildHills(c,w,h));
+      this.addLayer(0.65, (c,w,h) => this.buildBushes(c,w,h));
     }
+    // TMNT-style foreground layer (fast-scrolling decorative elements)
+    this.addLayer(0.85, (c,w,h) => this.buildForeground(c,w,h,theme));
   }
   buildSky(ctx, w, h, colors, theme) {
     const grd = ctx.createLinearGradient(0, 0, 0, h);
@@ -4073,6 +4075,99 @@ class ParallaxBackground {
         ctx.fillStyle = `rgba(255,255,255,${rng.nextFloat(0.3, 0.9)})`;
         ctx.beginPath();
         ctx.arc(sx, sy, sz, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+  // === FOREGROUND layer (TMNT depth - fast scrolling near-camera elements) ===
+  buildForeground(ctx, w, h, theme) {
+    ctx.clearRect(0, 0, w, h);
+    const rng = new SeededRNG(77799);
+    if (theme === "cave" || theme === "pyramid_interior" || theme === "pyramid_boss") {
+      // Hanging rock shards from top
+      for (let i = 0; i < 8; i++) {
+        const sx = rng.next() * w;
+        const sw = 3 + rng.next() * 5;
+        const sh = 10 + rng.next() * 20;
+        ctx.fillStyle = `rgba(30,25,50,${0.15 + rng.next() * 0.1})`;
+        ctx.beginPath();
+        ctx.moveTo(sx - sw/2, 0);
+        ctx.lineTo(sx, sh);
+        ctx.lineTo(sx + sw/2, 0);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // Floor rocks
+      for (let i = 0; i < 6; i++) {
+        const rx = rng.next() * w;
+        ctx.fillStyle = `rgba(20,18,40,${0.12 + rng.next() * 0.08})`;
+        ctx.beginPath();
+        ctx.ellipse(rx, h - 2, 8 + rng.next() * 12, 4 + rng.next() * 5, 0, 0, Math.PI*2);
+        ctx.fill();
+      }
+    } else if (theme === "forest" || theme === "treetop" || theme === "treetop_high" || theme === "treetop_dark" || theme === "treetop_boss") {
+      // Foreground leaf clusters (large, semi-transparent)
+      for (let i = 0; i < 10; i++) {
+        const lx = rng.next() * w;
+        const ly = rng.next() < 0.6 ? rng.next() * 30 : h - 10 - rng.next() * 20;
+        const lw = 15 + rng.next() * 25;
+        const lh = 10 + rng.next() * 15;
+        const g = 30 + Math.floor(rng.next() * 30);
+        ctx.fillStyle = `rgba(${5+Math.floor(rng.next()*10)},${g},${5+Math.floor(rng.next()*8)},${0.08 + rng.next() * 0.06})`;
+        ctx.beginPath();
+        ctx.ellipse(lx, ly, lw, lh, rng.next() * 0.5, 0, Math.PI*2);
+        ctx.fill();
+      }
+      // Dangling vines in foreground
+      ctx.strokeStyle = "rgba(20,50,15,0.1)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        const vx = rng.next() * w;
+        const vl = 20 + rng.next() * 40;
+        ctx.beginPath();
+        ctx.moveTo(vx, 0);
+        ctx.quadraticCurveTo(vx + 8 - rng.next() * 16, vl * 0.6, vx + 4 - rng.next() * 8, vl);
+        ctx.stroke();
+      }
+    } else if (theme === "fairy" || theme === "fairy_mist" || theme === "fairy_dark" || theme === "fairy_boss") {
+      // Floating sparkle motes
+      for (let i = 0; i < 20; i++) {
+        const sx = rng.next() * w;
+        const sy = rng.next() * h;
+        ctx.fillStyle = `rgba(255,${200+Math.floor(rng.next()*55)},${150+Math.floor(rng.next()*105)},${0.06 + rng.next() * 0.06})`;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2 + rng.next() * 3, 0, Math.PI*2);
+        ctx.fill();
+      }
+    } else if (theme === "sewer" || theme === "sewer_flood" || theme === "sewer_deep" || theme === "sewer_boss") {
+      // Pipe sections from edges
+      for (let i = 0; i < 4; i++) {
+        const px = rng.next() * w;
+        const pw = 6 + rng.next() * 8;
+        ctx.fillStyle = `rgba(40,45,35,${0.1 + rng.next() * 0.06})`;
+        ctx.fillRect(px, h - 8 - rng.next() * 12, pw, 8 + rng.next() * 12);
+      }
+    } else {
+      // Meadow/default: Tall grass blades and floating particles in foreground
+      for (let i = 0; i < 15; i++) {
+        const gx = rng.next() * w;
+        const gh = 8 + rng.next() * 18;
+        ctx.fillStyle = `rgba(${30+Math.floor(rng.next()*20)},${70+Math.floor(rng.next()*40)},${20+Math.floor(rng.next()*15)},${0.08 + rng.next() * 0.06})`;
+        ctx.fillRect(gx, h - gh, 2, gh);
+        // Seed head
+        if (rng.next() < 0.4) {
+          ctx.beginPath();
+          ctx.arc(gx + 1, h - gh - 2, 2, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+      // Floating pollen/dust motes
+      for (let i = 0; i < 8; i++) {
+        const dx = rng.next() * w;
+        const dy = h * 0.3 + rng.next() * h * 0.5;
+        ctx.fillStyle = `rgba(255,255,200,${0.04 + rng.next() * 0.04})`;
+        ctx.beginPath();
+        ctx.arc(dx, dy, 1.5 + rng.next(), 0, Math.PI*2);
         ctx.fill();
       }
     }

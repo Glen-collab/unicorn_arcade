@@ -2999,7 +2999,7 @@ class Boss extends Entity {
     this.arenaLeft = left;
     this.arenaRight = right;
   }
-  hit(particles, audio) {
+  hit(particles, audio, game) {
     if (this.invTimer > 0 || this.defeated) return false;
     this.hp--;
     this.invTimer = 1.5;
@@ -3009,6 +3009,16 @@ class Boss extends Entity {
     audio.hurtSound();
     particles.impactBurst(this.cx, this.cy, 15, "#ff4444");
     particles.floatingText(this.cx, this.cy - 30, this.hp > 0 ? "HIT! " + this.hp + " LEFT" : "K.O.!", "#ff4444");
+    // Score
+    if (game) {
+      if (this.hp <= 0) {
+        game.addScore(1000, this.cx, this.cy - 40, "#ffaa00");
+        game.camera.shake(8);
+      } else {
+        game.addScore(500, this.cx, this.cy - 40, "#ffaa00");
+        game.camera.shake(6);
+      }
+    }
     if (this.hp <= 0) {
       this.defeated = true;
       this.defeatTimer = 0;
@@ -4071,14 +4081,20 @@ class ParallaxBackground {
   buildFarMountains(ctx, w, h) {
     ctx.clearRect(0, 0, w, h);
     const rng = new SeededRNG(54321);
-    ctx.fillStyle = "#1a1040";
+    // Mountain fill
+    const mtnGrd = ctx.createLinearGradient(0, h * 0.3, 0, h);
+    mtnGrd.addColorStop(0, "#1a1040");
+    mtnGrd.addColorStop(1, "#221555");
+    ctx.fillStyle = mtnGrd;
     ctx.beginPath();
     ctx.moveTo(0, h);
     let mx = 0;
+    const peaks = [];
     while (mx < w) {
       const peakH = h * 0.35 + rng.next() * h * 0.25;
       const width = 80 + rng.next() * 120;
       ctx.lineTo(mx, h - peakH);
+      peaks.push({ x: mx, y: h - peakH, h: peakH });
       mx += width;
       ctx.lineTo(mx, h - peakH * 0.4 - rng.next() * 30);
       mx += 30 + rng.next() * 40;
@@ -4086,6 +4102,18 @@ class ParallaxBackground {
     ctx.lineTo(w, h);
     ctx.closePath();
     ctx.fill();
+    // Snow caps on tallest peaks
+    for (const pk of peaks) {
+      if (pk.h > h * 0.45) {
+        ctx.fillStyle = "rgba(220,220,255,0.3)";
+        ctx.beginPath();
+        ctx.moveTo(pk.x - 8, pk.y + 12);
+        ctx.lineTo(pk.x, pk.y);
+        ctx.lineTo(pk.x + 8, pk.y + 12);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
     ctx.strokeStyle = "rgba(200,180,255,0.15)";
     ctx.lineWidth = 2;
     ctx.stroke();
@@ -4097,20 +4125,44 @@ class ParallaxBackground {
     ctx.beginPath();
     ctx.moveTo(0, h);
     let mx = 0;
+    const ridgePoints = [];
     while (mx < w) {
       const peakH = h * 0.25 + rng.next() * h * 0.2;
       const width = 60 + rng.next() * 100;
-      ctx.lineTo(mx + width * 0.5, h - peakH);
+      const peakX = mx + width * 0.5;
+      const peakY = h - peakH;
+      ctx.lineTo(peakX, peakY);
+      ridgePoints.push({ x: peakX, y: peakY });
       mx += width;
     }
     ctx.lineTo(w, h);
     ctx.closePath();
     ctx.fill();
+    // Tree silhouettes on ridgeline
+    ctx.fillStyle = "#1e1240";
+    for (let i = 0; i < ridgePoints.length; i++) {
+      const rp = ridgePoints[i];
+      for (let t = 0; t < 3; t++) {
+        const tx = rp.x - 12 + rng.next() * 24;
+        const ty = rp.y;
+        const th = 8 + rng.next() * 12;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(tx - 4 - rng.next() * 2, ty + th);
+        ctx.lineTo(tx + 4 + rng.next() * 2, ty + th);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
   }
   buildHills(ctx, w, h) {
     ctx.clearRect(0, 0, w, h);
     const rng = new SeededRNG(22233);
-    ctx.fillStyle = "#1a3a20";
+    // Hill gradient
+    const hillGrd = ctx.createLinearGradient(0, h - 80, 0, h);
+    hillGrd.addColorStop(0, "#1a3a20");
+    hillGrd.addColorStop(1, "#0e2814");
+    ctx.fillStyle = hillGrd;
     ctx.beginPath();
     ctx.moveTo(0, h);
     for (let x = 0; x <= w; x += 4) {
@@ -4120,6 +4172,7 @@ class ParallaxBackground {
     ctx.lineTo(w, h);
     ctx.closePath();
     ctx.fill();
+    // Trees
     for (let i = 0; i < 40; i++) {
       const tx = rng.next() * w;
       const ty = h - 30 - Math.sin(tx * 0.008 + 1) * 30 - Math.sin(tx * 0.015) * 20;
@@ -4132,10 +4185,42 @@ class ParallaxBackground {
       ctx.closePath();
       ctx.fill();
     }
+    // Fence posts along bottom
+    ctx.strokeStyle = "rgba(80,60,30,0.3)";
+    ctx.lineWidth = 1;
+    for (let fx = 20; fx < w; fx += 35 + rng.next() * 15) {
+      const fy = h - 12 - rng.next() * 5;
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(fx, fy + 12);
+      ctx.stroke();
+    }
+    // Fence rail
+    ctx.strokeStyle = "rgba(80,60,30,0.2)";
+    ctx.beginPath();
+    ctx.moveTo(0, h - 8);
+    ctx.lineTo(w, h - 8);
+    ctx.stroke();
+    // Windmill silhouette
+    const wmx = w * 0.7;
+    const wmy = h - 65;
+    ctx.fillStyle = "rgba(20,15,30,0.25)";
+    ctx.fillRect(wmx - 2, wmy, 4, 45);
+    // Blades (static silhouette)
+    ctx.strokeStyle = "rgba(20,15,30,0.2)";
+    ctx.lineWidth = 1.5;
+    for (let b = 0; b < 4; b++) {
+      const angle = b * Math.PI / 2 + 0.3;
+      ctx.beginPath();
+      ctx.moveTo(wmx, wmy);
+      ctx.lineTo(wmx + Math.cos(angle) * 16, wmy + Math.sin(angle) * 16);
+      ctx.stroke();
+    }
   }
   buildBushes(ctx, w, h) {
     ctx.clearRect(0, 0, w, h);
     const rng = new SeededRNG(44455);
+    // Bushes
     for (let i = 0; i < 50; i++) {
       const bx = rng.next() * w;
       const by = h - 8 - rng.next() * 30;
@@ -4144,6 +4229,31 @@ class ParallaxBackground {
       ctx.fillStyle = `rgba(${20+Math.floor(rng.next()*15)},${60+Math.floor(rng.next()*30)},${20+Math.floor(rng.next()*15)},0.6)`;
       ctx.beginPath();
       ctx.ellipse(bx, by, bw, bh, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+    // Wildflower clusters
+    const flowerColors = ["#ff88aa","#ffdd44","#88ccff","#ff66cc","#aaddff"];
+    for (let i = 0; i < 30; i++) {
+      const fx = rng.next() * w;
+      const fy = h - 4 - rng.next() * 20;
+      ctx.fillStyle = flowerColors[Math.floor(rng.next() * flowerColors.length)];
+      ctx.globalAlpha = 0.5 + rng.next() * 0.3;
+      ctx.beginPath();
+      ctx.arc(fx, fy, 1.5 + rng.next(), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // Butterfly silhouettes
+    for (let i = 0; i < 5; i++) {
+      const bfx = rng.next() * w;
+      const bfy = h * 0.3 + rng.next() * h * 0.4;
+      ctx.fillStyle = `rgba(${180+Math.floor(rng.next()*75)},${100+Math.floor(rng.next()*100)},${200+Math.floor(rng.next()*55)},0.2)`;
+      // Two wing shapes
+      ctx.beginPath();
+      ctx.ellipse(bfx - 2, bfy, 3, 2, -0.3, 0, Math.PI*2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(bfx + 2, bfy, 3, 2, 0.3, 0, Math.PI*2);
       ctx.fill();
     }
   }
@@ -4199,15 +4309,22 @@ class ParallaxBackground {
   buildCaveNear(ctx, w, h) {
     ctx.clearRect(0, 0, w, h);
     const rng = new SeededRNG(89012);
-    // Glowing crystal formations
-    const crystalColors = ["#4466aa","#6644aa","#44aa88","#aa4488"];
-    for (let i = 0; i < 25; i++) {
+    // Glowing crystal formations (larger, more prominent)
+    const crystalColors = ["#4466aa","#6644aa","#44aa88","#aa4488","#44aaff"];
+    for (let i = 0; i < 30; i++) {
       const cx = rng.next() * w;
       const cy = h - 20 - rng.next() * 50;
-      const cs = 4 + rng.next() * 8;
+      const cs = 5 + rng.next() * 10;
       const clr = crystalColors[Math.floor(rng.next() * crystalColors.length)];
+      // Larger glow radius
       ctx.fillStyle = clr;
-      ctx.globalAlpha = 0.4 + rng.next() * 0.3;
+      ctx.globalAlpha = 0.1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, cs * 2.5, 0, Math.PI*2);
+      ctx.fill();
+      // Crystal body
+      ctx.fillStyle = clr;
+      ctx.globalAlpha = 0.45 + rng.next() * 0.3;
       ctx.beginPath();
       ctx.moveTo(cx, cy - cs);
       ctx.lineTo(cx + cs * 0.4, cy);
@@ -4215,11 +4332,31 @@ class ParallaxBackground {
       ctx.lineTo(cx - cs * 0.4, cy);
       ctx.closePath();
       ctx.fill();
-      // Crystal glow
+      // Inner glow
       ctx.fillStyle = clr;
-      ctx.globalAlpha = 0.15;
+      ctx.globalAlpha = 0.2;
       ctx.beginPath();
       ctx.arc(cx, cy, cs * 1.5, 0, Math.PI*2);
+      ctx.fill();
+    }
+    // Dripping water drops at stalactite tips
+    ctx.globalAlpha = 0.4;
+    for (let i = 0; i < 8; i++) {
+      const dx = rng.next() * w;
+      const dy = rng.next() * h * 0.15 + 10;
+      ctx.fillStyle = "#88bbff";
+      ctx.beginPath();
+      ctx.arc(dx, dy, 1.5, 0, Math.PI*2);
+      ctx.fill();
+    }
+    // Moss patches on rocks
+    ctx.globalAlpha = 0.3;
+    for (let i = 0; i < 15; i++) {
+      const mx = rng.next() * w;
+      const my = h - 8 - rng.next() * 35;
+      ctx.fillStyle = "#2a5a2a";
+      ctx.beginPath();
+      ctx.ellipse(mx, my, 4 + rng.next() * 6, 2 + rng.next() * 3, 0, 0, Math.PI*2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -4293,6 +4430,30 @@ class ParallaxBackground {
       ctx.beginPath();
       ctx.ellipse(tx, ty, tw, th, 0, 0, Math.PI*2);
       ctx.fill();
+    }
+    // Light ray beams through canopy
+    for (let i = 0; i < 4; i++) {
+      const rx = rng.next() * w;
+      const rw = 8 + rng.next() * 12;
+      ctx.fillStyle = "rgba(255,255,200,0.04)";
+      ctx.beginPath();
+      ctx.moveTo(rx - rw * 0.3, 0);
+      ctx.lineTo(rx + rw * 0.3, 0);
+      ctx.lineTo(rx + rw, h);
+      ctx.lineTo(rx - rw, h);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Hanging vine silhouettes
+    ctx.strokeStyle = "rgba(30,60,20,0.3)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 12; i++) {
+      const vx = rng.next() * w;
+      const vLen = 15 + rng.next() * 30;
+      ctx.beginPath();
+      ctx.moveTo(vx, 0);
+      ctx.quadraticCurveTo(vx + 3 - rng.next() * 6, vLen * 0.5, vx + 2 - rng.next() * 4, vLen);
+      ctx.stroke();
     }
   }
   buildForestFloor(ctx, w, h) {
@@ -7207,8 +7368,12 @@ class TileRenderer {
         const sy = r * T - camY;
 
         if (tile === TILE_GRASS) {
-          // Dirt body
-          ctx.fillStyle = def.dirt;
+          const seed = c * 31 + r * 17;
+          // Dirt body with gradient
+          const dirtGrd = ctx.createLinearGradient(sx, sy + 4, sx, sy + T);
+          dirtGrd.addColorStop(0, def.dirt);
+          dirtGrd.addColorStop(1, def.dirtDark);
+          ctx.fillStyle = dirtGrd;
           ctx.fillRect(sx, sy + 4, T, T - 4);
           // Grass/surface top
           const grd = ctx.createLinearGradient(sx, sy, sx, sy + 6);
@@ -7216,29 +7381,70 @@ class TileRenderer {
           grd.addColorStop(1, def.grassBot);
           ctx.fillStyle = grd;
           ctx.fillRect(sx, sy, T, 6);
-          // Blades (skip for cloud/cave themes)
+          // Top highlight line (brighter, 2px with glow)
+          ctx.fillStyle = "rgba(255,255,255,0.25)";
+          ctx.fillRect(sx, sy, T, 1);
+          ctx.fillStyle = "rgba(255,255,255,0.1)";
+          ctx.fillRect(sx, sy + 1, T, 1);
+          // Varied grass blades (skip for cloud/cave themes)
           if (def.grassBlade) {
             ctx.fillStyle = def.grassBlade;
-            for (let b = 0; b < 3; b++) {
-              const bx = sx + 3 + b * 7;
-              ctx.fillRect(bx, sy - 1, 2, 3);
+            for (let b = 0; b < 4; b++) {
+              const bx = sx + 2 + b * 5 + ((seed * (b+1)) % 3);
+              const bh = 2 + ((seed * (b+3)) % 3); // varied heights
+              ctx.fillRect(bx, sy - bh + 2, 1, bh);
             }
           }
-          // Top highlight line
-          ctx.fillStyle = "rgba(255,255,255,0.15)";
-          ctx.fillRect(sx, sy, T, 1);
+          // Occasional flower accents on some tiles
+          if (def.grassBlade && ((seed * 7) % 23) < 4) {
+            const flowerColors = ["#ff6688","#ffcc44","#88ccff","#ff88cc"];
+            const fc = flowerColors[(seed * 3) % flowerColors.length];
+            ctx.fillStyle = fc;
+            const fx = sx + 3 + (seed % 12);
+            ctx.fillRect(fx, sy - 1, 2, 2);
+          }
+          // Shadow below grass tile if air below
+          if (r + 1 < level.rows && level.get(c, r + 1) === TILE_EMPTY) {
+            ctx.fillStyle = "rgba(0,0,0,0.15)";
+            ctx.fillRect(sx, sy + T, T, 3);
+          }
         } else if (tile === TILE_DIRT) {
-          ctx.fillStyle = def.dirt;
+          // Gradient fill (lighter at top, darker at bottom)
+          const dirtGrd = ctx.createLinearGradient(sx, sy, sx, sy + T);
+          dirtGrd.addColorStop(0, def.dirt);
+          dirtGrd.addColorStop(1, def.dirtDark);
+          ctx.fillStyle = dirtGrd;
           ctx.fillRect(sx, sy, T, T);
           // Darker edges
           ctx.fillStyle = def.dirtDark;
           ctx.fillRect(sx, sy, 1, T);
           ctx.fillRect(sx+T-1, sy, 1, T);
-          // Random specks (deterministic)
+          // Horizontal line accents (TMNT ground lines)
           const seed = c * 31 + r * 17;
+          ctx.fillStyle = "rgba(0,0,0,0.06)";
+          ctx.fillRect(sx + 1, sy + 4 + (seed % 5), T - 2, 1);
+          ctx.fillRect(sx + 1, sy + 10 + ((seed*3) % 4), T - 2, 1);
+          // Random specks/pebbles (deterministic, more varied)
           ctx.fillStyle = "rgba(0,0,0,0.1)";
           ctx.fillRect(sx + (seed % 7) + 3, sy + ((seed*3) % 9) + 3, 2, 2);
           ctx.fillRect(sx + ((seed*7) % 11) + 2, sy + ((seed*5) % 11) + 5, 2, 1);
+          ctx.fillStyle = "rgba(255,255,255,0.05)";
+          ctx.fillRect(sx + ((seed*11) % 13) + 1, sy + ((seed*2) % 10) + 2, 1, 1);
+          // Crack pattern on some tiles
+          if ((seed * 13) % 29 < 3) {
+            ctx.strokeStyle = "rgba(0,0,0,0.12)";
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(sx + 3 + (seed % 6), sy + 2);
+            ctx.lineTo(sx + 8 + (seed % 4), sy + 8);
+            ctx.lineTo(sx + 5 + (seed % 5), sy + 13);
+            ctx.stroke();
+          }
+          // Shadow below dirt tile if air below
+          if (r + 1 < level.rows && level.get(c, r + 1) === TILE_EMPTY) {
+            ctx.fillStyle = "rgba(0,0,0,0.15)";
+            ctx.fillRect(sx, sy + T, T, 3);
+          }
         }
       }
     }
@@ -7602,6 +7808,12 @@ class SpriteDrawer {
     const drawW = 28;
     const drawH = 28;
 
+    // Shadow (projected to ground below)
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.beginPath();
+    ctx.ellipse(fx, fy + 14, 8, 3, 0, 0, Math.PI*2);
+    ctx.fill();
+
     if (SPRITES.fly) {
       const frame = Math.floor(gt * 10) % CFG.SPRITE_FLY_FRAMES;
       const srcX = frame * CFG.SPRITE_FLY_FW;
@@ -7634,6 +7846,12 @@ class SpriteDrawer {
     const gy = gnome.bottom;
     const drawW = 22;
     const drawH = 36;
+
+    // Shadow
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath();
+    ctx.ellipse(gx, gy + 2, 10, 4, 0, 0, Math.PI*2);
+    ctx.fill();
 
     if (SPRITES.gnome) {
       const srcX = gnome.animFrame * CFG.SPRITE_GNOME_FW;
@@ -8515,6 +8733,12 @@ class SpriteDrawer {
     const bx = boss.cx;
     const by = boss.bottom;
 
+    // Boss shadow
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.beginPath();
+    ctx.ellipse(bx, by + 2, boss.w / 2 + 6, 6, 0, 0, Math.PI*2);
+    ctx.fill();
+
     // Invincibility flash
     if (boss.invTimer > 0 && Math.floor(gt * 8) % 2 === 0) return;
 
@@ -9157,99 +9381,156 @@ class SpriteDrawer {
   }
 }
 
-// --- HUD (Co-Op: P1 left, shared lives center, P2 right) ---
+// --- HUD (TMNT Arcade-Style Bordered Panels) ---
 class HUD {
-  draw(ctx, players, gt, levelDef, levelTimer, activePlayers, sharedLives, playerNames) {
+  draw(ctx, players, gt, levelDef, levelTimer, activePlayers, sharedLives, playerNames, game) {
     ctx.save();
 
-    // Semi-transparent bar at top
-    ctx.fillStyle = "rgba(0,0,0,0.4)";
-    ctx.fillRect(0, 0, CFG.W, 22);
-
-    ctx.font = "bold 8px monospace";
-    ctx.textBaseline = "top";
-
-    // Layout: [P1 ★n] [P2 ★n] | ♥xN LEVEL TIMER | [P3 ★n] [P4 ★n]
     const activeCount = activePlayers.filter(a => a).length;
+    const panelW = 52, panelH = 26;
 
-    // LEFT SIDE: P1 and P2
-    ctx.textAlign = "left";
-    let leftX = 4;
-    for (let i = 0; i < Math.min(2, activeCount); i++) {
+    // --- Player panels (top corners) ---
+    // Left side: P1, P2
+    let leftX = 3;
+    for (let i = 0; i < 2; i++) {
       if (!activePlayers[i]) continue;
-      const p = players[i];
-      const def = p.characterDef;
-      ctx.fillStyle = def.labelColor;
-      ctx.fillText("P" + (i + 1), leftX, 2);
-      ctx.fillStyle = "#ffee44";
-      ctx.fillText("\u2605" + p.stars, leftX + 14, 6);
-      // Respawning indicator
-      if (!p.alive && p.respawnTimer > 0) {
-        ctx.fillStyle = Math.floor(gt * 4) % 2 === 0 ? "#ff6666" : "#ff9999";
-        ctx.font = "6px monospace";
-        ctx.fillText("RSP", leftX, 14);
-        ctx.font = "bold 8px monospace";
-      }
-      leftX += 48;
+      this.drawPlayerPanel(ctx, players[i], i, playerNames[i], leftX, 2, panelW, panelH, gt);
+      leftX += panelW + 3;
+    }
+    // Right side: P3, P4
+    let rightX = CFG.W - panelW - 3;
+    for (let i = 3; i >= 2; i--) {
+      if (!activePlayers[i]) continue;
+      this.drawPlayerPanel(ctx, players[i], i, playerNames[i], rightX, 2, panelW, panelH, gt);
+      rightX -= panelW + 3;
     }
 
-    // CENTER: Shared lives + level name + timer
+    // --- Center panel: Stage, Lives, Score, Timer ---
+    const centerW = 110;
+    const cx = (CFG.W - centerW) / 2;
+    // Dark bordered center panel
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(cx, 1, centerW, 28);
+    ctx.strokeStyle = "#8866aa";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cx, 1, centerW, 28);
+
     ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const centerX = CFG.W / 2;
+
+    // Stage indicator
+    ctx.font = "bold 7px monospace";
+    ctx.fillStyle = "#ffffff";
+    const stageName = levelDef ? levelDef.name : "1-1";
+    ctx.fillText("STAGE " + stageName, centerX, 3);
+
+    // Lives (hearts + count)
     const heartsToShow = Math.min(sharedLives, 5);
-    const heartStartX = CFG.W / 2 - heartsToShow * 7;
+    const heartStartX = centerX - heartsToShow * 5 - 4;
     for (let i = 0; i < heartsToShow; i++) {
-      this.drawMiniHeart(ctx, heartStartX + i * 14, 3);
+      this.drawMiniHeart(ctx, heartStartX + i * 10, 11);
     }
     ctx.fillStyle = "#ffffff";
-    ctx.fillText("x" + sharedLives, CFG.W / 2 + heartsToShow * 7 + 8, 4);
-    // Level name below hearts
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.font = "7px monospace";
-    const lvlName = levelDef ? levelDef.name + " " + levelDef.title : "";
-    ctx.fillText(lvlName, CFG.W / 2, 14);
+    ctx.font = "bold 7px monospace";
+    ctx.textAlign = "left";
+    ctx.fillText("x" + sharedLives, heartStartX + heartsToShow * 10 + 2, 12);
 
-    // Timer (right of center area)
+    // Score display (gold, zero-padded)
+    ctx.textAlign = "center";
+    ctx.font = "bold 7px monospace";
+    const scoreStr = String(game ? game.score : 0).padStart(7, "0");
+    ctx.fillStyle = "#ffdd44";
+    ctx.fillText(scoreStr, centerX, 21);
+
+    // Timer (right side of center area)
+    ctx.textAlign = "right";
     ctx.font = "bold 8px monospace";
     const timeVal = Math.ceil(levelTimer || 0);
     if (timeVal <= CFG.TIME_WARNING) {
       ctx.fillStyle = Math.floor(gt * 4) % 2 === 0 ? "#ff4444" : "#ff8888";
     } else {
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#aaddff";
     }
-    ctx.textAlign = "right";
-    ctx.fillText(timeVal, CFG.W / 2 + 70, 4);
+    ctx.fillText(timeVal, cx + centerW - 3, 12);
 
-    // RIGHT SIDE: P3 and P4 (or P2 if only 2 active from right)
-    ctx.textAlign = "right";
-    let rightX = CFG.W - 4;
-    for (let i = Math.min(4, activeCount) - 1; i >= 2; i--) {
-      if (!activePlayers[i]) continue;
-      const p = players[i];
-      const def = p.characterDef;
-      ctx.fillStyle = def.labelColor;
-      ctx.fillText("P" + (i + 1), rightX, 2);
-      ctx.fillStyle = "#ffee44";
-      ctx.fillText("\u2605" + p.stars, rightX - 14, 6);
-      // Respawning indicator
-      if (!p.alive && p.respawnTimer > 0) {
-        ctx.fillStyle = Math.floor(gt * 4) % 2 === 0 ? "#6688ff" : "#99bbff";
-        ctx.font = "6px monospace";
-        ctx.fillText("RSP", rightX - 14, 14);
-        ctx.font = "bold 8px monospace";
-      }
-      rightX -= 48;
+    // --- Combo display (mid-screen, fades) ---
+    if (game && game.comboDisplayTimer > 0 && game.comboDisplay > 1) {
+      const alpha = Math.min(1, game.comboDisplayTimer);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "bold 16px monospace";
+      const comboY = 50 - (1 - alpha) * 10;
+      ctx.fillStyle = "#000000";
+      ctx.fillText(game.comboDisplay + "x COMBO!", CFG.W / 2 + 1, comboY + 1);
+      ctx.fillStyle = "#ffcc00";
+      ctx.fillText(game.comboDisplay + "x COMBO!", CFG.W / 2, comboY);
+      ctx.restore();
     }
 
     ctx.restore();
   }
+  drawPlayerPanel(ctx, player, slot, name, x, y, w, h, gt) {
+    const def = player.characterDef;
+    const borderColor = def.labelColor;
+
+    // Panel background
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, w, h);
+
+    // Player name
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.font = "bold 7px monospace";
+    ctx.fillStyle = borderColor;
+    ctx.fillText(name, x + 3, y + 2);
+
+    // Slot tag
+    ctx.textAlign = "right";
+    ctx.font = "6px monospace";
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.fillText("P" + (slot + 1), x + w - 3, y + 2);
+
+    // Health bar
+    const barX = x + 3, barY = y + 11, barW = w - 6, barH = 4;
+    ctx.fillStyle = "#220000";
+    ctx.fillRect(barX, barY, barW, barH);
+    if (player.alive) {
+      const healthPct = player.invTimer > 0 ? 0.6 : 1.0;
+      const grd = ctx.createLinearGradient(barX, barY, barX + barW * healthPct, barY);
+      grd.addColorStop(0, "#22cc44");
+      grd.addColorStop(1, "#44ff66");
+      ctx.fillStyle = grd;
+      ctx.fillRect(barX, barY, barW * healthPct, barH);
+    } else if (player.respawnTimer > 0) {
+      // Respawning - flashing red
+      ctx.fillStyle = Math.floor(gt * 4) % 2 === 0 ? "#ff4444" : "#882222";
+      ctx.fillRect(barX, barY, barW * 0.3, barH);
+    }
+    // Bar border
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(barX, barY, barW, barH);
+
+    // Star count
+    ctx.textAlign = "left";
+    ctx.font = "bold 7px monospace";
+    ctx.fillStyle = "#ffdd44";
+    ctx.fillText("\u2605" + player.stars, x + 3, y + 18);
+  }
   drawMiniHeart(ctx, x, y) {
     ctx.fillStyle = "#ff4466";
     ctx.beginPath();
-    ctx.moveTo(x + 5, y + 3);
-    ctx.bezierCurveTo(x + 5, y, x, y, x, y + 3);
-    ctx.bezierCurveTo(x, y + 6, x + 5, y + 9, x + 5, y + 9);
-    ctx.bezierCurveTo(x + 5, y + 9, x + 10, y + 6, x + 10, y + 3);
-    ctx.bezierCurveTo(x + 10, y, x + 5, y, x + 5, y + 3);
+    ctx.moveTo(x + 4, y + 2);
+    ctx.bezierCurveTo(x + 4, y, x, y, x, y + 2);
+    ctx.bezierCurveTo(x, y + 5, x + 4, y + 7, x + 4, y + 7);
+    ctx.bezierCurveTo(x + 4, y + 7, x + 8, y + 5, x + 8, y + 2);
+    ctx.bezierCurveTo(x + 8, y, x + 4, y, x + 4, y + 2);
     ctx.fill();
   }
 }
@@ -9257,6 +9538,223 @@ class HUD {
 // ============================================================
 //  SECTION 5: GAME LOGIC
 // ============================================================
+
+// --- Environmental Props (TMNT-style decorative objects per theme) ---
+const THEME_PROPS = {
+  meadow: [
+    { type: "mushroom", color: "#cc4444", capColor: "#ff6666", size: [8,10] },
+    { type: "rock", color: "#888888", darkColor: "#666666", size: [12,8] },
+    { type: "flowers", color: "#ff88cc", size: [10,6] },
+    { type: "log", color: "#8B6914", darkColor: "#6B4914", size: [25,8] },
+    { type: "sign", color: "#A0522D", size: [8,16] },
+  ],
+  cave: [
+    { type: "crystal", color: "#4488ff", glowColor: "#88bbff", size: [6,14] },
+    { type: "rock", color: "#555555", darkColor: "#333333", size: [14,8] },
+    { type: "stalagmite", color: "#666666", darkColor: "#444444", size: [8,18] },
+  ],
+  forest: [
+    { type: "stump", color: "#6B4226", darkColor: "#4a2e1a", size: [14,10] },
+    { type: "berry_bush", color: "#2a6a20", berryColor: "#ff4444", size: [16,12] },
+    { type: "mushroom", color: "#FFD700", capColor: "#ffee44", size: [6,8] },
+  ],
+  clouds: [
+    { type: "rock", color: "#ccccdd", darkColor: "#aaaacc", size: [10,7] },
+    { type: "flowers", color: "#aaddff", size: [8,5] },
+  ],
+  lakeside: [
+    { type: "rock", color: "#778888", darkColor: "#556666", size: [12,8] },
+    { type: "flowers", color: "#ffcc44", size: [10,6] },
+    { type: "log", color: "#7a5a2a", darkColor: "#5a3a1a", size: [22,7] },
+  ],
+  underwater: [
+    { type: "coral", color: "#ff6688", size: [10,14] },
+    { type: "rock", color: "#446666", darkColor: "#334444", size: [14,9] },
+  ],
+  treetop: [
+    { type: "mushroom", color: "#88cc44", capColor: "#aaee66", size: [7,9] },
+    { type: "flowers", color: "#ffaacc", size: [9,6] },
+  ],
+  pyramid: [
+    { type: "rock", color: "#aa9966", darkColor: "#887744", size: [12,8] },
+  ],
+  pyramid_interior: [
+    { type: "crystal", color: "#ffaa44", glowColor: "#ffcc88", size: [6,12] },
+  ],
+  sewer: [
+    { type: "rock", color: "#556655", darkColor: "#334433", size: [11,7] },
+  ],
+};
+
+function drawProp(ctx, prop, gt) {
+  const { type, x, y, def } = prop;
+  const [w, h] = def.size;
+  switch (type) {
+    case "mushroom": {
+      // Stem
+      ctx.fillStyle = "#ddd";
+      ctx.fillRect(x + w/2 - 2, y + h*0.4, 4, h*0.6);
+      // Cap
+      ctx.fillStyle = def.capColor || def.color;
+      ctx.beginPath();
+      ctx.ellipse(x + w/2, y + h*0.4, w/2, h*0.4, 0, Math.PI, 0);
+      ctx.fill();
+      // Spots
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.fillRect(x + w/2 - 1, y + h*0.2, 2, 2);
+      break;
+    }
+    case "rock": {
+      ctx.fillStyle = def.color;
+      ctx.beginPath();
+      ctx.moveTo(x + 2, y + h);
+      ctx.lineTo(x, y + h * 0.5);
+      ctx.lineTo(x + w * 0.3, y + 1);
+      ctx.lineTo(x + w * 0.7, y);
+      ctx.lineTo(x + w, y + h * 0.4);
+      ctx.lineTo(x + w - 1, y + h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = def.darkColor || "rgba(0,0,0,0.15)";
+      ctx.fillRect(x + 2, y + h * 0.5, w * 0.4, h * 0.3);
+      break;
+    }
+    case "flowers": {
+      const sway = Math.sin(gt * 2 + x * 0.1) * 1.5;
+      const colors = [def.color, "#ffffff", "#ffdd44"];
+      for (let i = 0; i < 3; i++) {
+        const fx = x + i * (w/3) + 1;
+        // Stem
+        ctx.fillStyle = "#44aa44";
+        ctx.fillRect(fx + 1 + sway * 0.5, y + h * 0.4, 1, h * 0.6);
+        // Petal
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.beginPath();
+        ctx.arc(fx + 1.5 + sway, y + h * 0.35, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+    case "log": {
+      ctx.fillStyle = def.color;
+      ctx.fillRect(x, y + 2, w, h - 2);
+      // Rings on end
+      ctx.fillStyle = def.darkColor || "#5a3a0a";
+      ctx.beginPath();
+      ctx.ellipse(x, y + h/2 + 1, 3, h/2 - 1, 0, 0, Math.PI*2);
+      ctx.fill();
+      // Bark lines
+      ctx.fillStyle = "rgba(0,0,0,0.1)";
+      ctx.fillRect(x + 4, y + 3, w - 8, 1);
+      ctx.fillRect(x + 3, y + h - 2, w - 6, 1);
+      break;
+    }
+    case "sign": {
+      // Post
+      ctx.fillStyle = def.color;
+      ctx.fillRect(x + w/2 - 1, y + h * 0.4, 2, h * 0.6);
+      // Board
+      ctx.fillStyle = "#C4A456";
+      ctx.fillRect(x - 1, y, w + 2, h * 0.45);
+      ctx.strokeStyle = "#8B6914";
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(x - 1, y, w + 2, h * 0.45);
+      // Star icon
+      ctx.fillStyle = "#ffdd44";
+      ctx.font = "bold 6px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("\u2605", x + w/2, y + h * 0.35);
+      break;
+    }
+    case "crystal": {
+      // Glow
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = def.glowColor || def.color;
+      ctx.beginPath();
+      ctx.arc(x + w/2, y + h/2, w, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+      // Crystal body
+      ctx.fillStyle = def.color;
+      ctx.beginPath();
+      ctx.moveTo(x + w/2, y);
+      ctx.lineTo(x + w, y + h * 0.6);
+      ctx.lineTo(x + w * 0.7, y + h);
+      ctx.lineTo(x + w * 0.3, y + h);
+      ctx.lineTo(x, y + h * 0.6);
+      ctx.closePath();
+      ctx.fill();
+      // Highlight
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.beginPath();
+      ctx.moveTo(x + w/2, y + 1);
+      ctx.lineTo(x + w * 0.65, y + h * 0.5);
+      ctx.lineTo(x + w/2, y + h * 0.7);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "stalagmite": {
+      ctx.fillStyle = def.color;
+      ctx.beginPath();
+      ctx.moveTo(x + w/2, y);
+      ctx.lineTo(x + w, y + h);
+      ctx.lineTo(x, y + h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = def.darkColor || "rgba(0,0,0,0.1)";
+      ctx.fillRect(x + w * 0.3, y + h * 0.3, w * 0.15, h * 0.5);
+      break;
+    }
+    case "stump": {
+      ctx.fillStyle = def.color;
+      ctx.fillRect(x + 2, y + 3, w - 4, h - 3);
+      // Top
+      ctx.fillStyle = def.darkColor || "#4a2e1a";
+      ctx.beginPath();
+      ctx.ellipse(x + w/2, y + 3, w/2 - 1, 3, 0, 0, Math.PI*2);
+      ctx.fill();
+      // Rings
+      ctx.strokeStyle = "rgba(0,0,0,0.15)";
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.ellipse(x + w/2, y + 3, w/4, 1.5, 0, 0, Math.PI*2);
+      ctx.stroke();
+      break;
+    }
+    case "berry_bush": {
+      // Bush
+      ctx.fillStyle = def.color;
+      ctx.beginPath();
+      ctx.ellipse(x + w/2, y + h * 0.6, w/2, h * 0.5, 0, 0, Math.PI*2);
+      ctx.fill();
+      // Berries
+      ctx.fillStyle = def.berryColor || "#ff4444";
+      for (let i = 0; i < 4; i++) {
+        const bx = x + 3 + ((i * 7 + x) % (w - 6));
+        const by = y + h * 0.3 + ((i * 5) % (h * 0.4));
+        ctx.beginPath();
+        ctx.arc(bx, by, 1.5, 0, Math.PI*2);
+        ctx.fill();
+      }
+      break;
+    }
+    case "coral": {
+      ctx.fillStyle = def.color;
+      // Branch shapes
+      for (let i = 0; i < 3; i++) {
+        const cx = x + i * (w/3) + 1;
+        const ch = h * (0.5 + (i * 0.2));
+        ctx.fillRect(cx, y + h - ch, 3, ch);
+        ctx.beginPath();
+        ctx.arc(cx + 1.5, y + h - ch, 2.5, 0, Math.PI*2);
+        ctx.fill();
+      }
+      break;
+    }
+  }
+}
 
 // --- Level ---
 class Level {
@@ -9282,6 +9780,7 @@ class Level {
     this.kittycornGems = [];
     this.pixicornGems = [];
     this.mousicornGems = [];
+    this.props = [];
     this.fireballs = [];
     this.formGates = [];
     this.hoop = null;
@@ -9902,6 +10401,34 @@ class Level {
       this.hoop = new Hoop(hoopCol * T + T/2 - 10, (grassRow - 4) * T);
     }
 
+    // Generate environmental props (TMNT-style decorations)
+    {
+      const T = CFG.TILE;
+      const propRng = new SeededRNG(def.seed + 777);
+      const bgTheme = def.bgTheme || "meadow";
+      const propDefs = THEME_PROPS[bgTheme] || THEME_PROPS.meadow;
+      const propsPerScreen = 10;
+      const totalProps = Math.floor((this.cols * T / CFG.W) * propsPerScreen);
+      for (let pi = 0; pi < totalProps; pi++) {
+        const propCol = propRng.nextInt(8, this.cols - 10);
+        // Check this column has ground
+        if (this.get(propCol, grassRow) !== TILE_GRASS) { continue; }
+        // Get zone-aware theme if needed
+        let zonePropDefs = propDefs;
+        if (hasZones) {
+          const zone = this.getZoneAtCol(propCol);
+          const zt = zone.bgTheme || bgTheme;
+          zonePropDefs = THEME_PROPS[zt] || propDefs;
+        }
+        if (zonePropDefs.length === 0) continue;
+        const propDef = zonePropDefs[propRng.nextInt(0, zonePropDefs.length - 1)];
+        const [pw, ph] = propDef.size;
+        const px = propCol * T + propRng.nextInt(0, T - pw);
+        const py = grassRow * T - ph;
+        this.props.push({ type: propDef.type, x: px, y: py, def: propDef });
+      }
+    }
+
     // Ensure ground under spawn and end
     for (let c = 0; c < 10; c++) {
       this.set(c, grassRow, TILE_GRASS);
@@ -10212,6 +10739,7 @@ class GameStateMachine {
     }
 
     g.gameTime += dt;
+    g.updateCombo(dt);
 
     // Level timer countdown (always ticks while playing, even during respawn)
     if (g.levelTimer > 0) {
@@ -10425,6 +10953,8 @@ class GameStateMachine {
             g.audio.collectSound();
             g.particles.sparkleBurst(enemy.cx, enemy.cy, 12);
             g.particles.floatingText(enemy.cx, enemy.cy - 10, text, color);
+            g.addComboHit();
+            g.addScore(enemies === g.level.gnomes ? 200 : 100, enemy.cx, enemy.cy, "#ffdd44");
             break;
           }
         }
@@ -10449,6 +10979,8 @@ class GameStateMachine {
             g.audio.collectSound();
             g.particles.impactBurst(enemy.cx, enemy.cy, 8, color);
             g.particles.floatingText(enemy.cx, enemy.cy - 10, text, color);
+            g.addComboHit();
+            g.addScore(enemies === g.level.gnomes ? 200 : 100, enemy.cx, enemy.cy, "#ffdd44");
             break;
           }
         }
@@ -10536,11 +11068,11 @@ class GameStateMachine {
     if (g.level.boss && g.level.boss.alive && !g.level.boss.defeated) {
       for (const poop of g.level.poops) {
         if (!poop.alive || poop.landed) continue;
-        if (poop.overlaps(g.level.boss)) { g.level.boss.hit(g.particles, g.audio); poop.alive = false; break; }
+        if (poop.overlaps(g.level.boss)) { g.level.boss.hit(g.particles, g.audio, g); poop.alive = false; break; }
       }
       for (const rb of g.level.rainbowBolts) {
         if (!rb.alive) continue;
-        if (rb.overlaps(g.level.boss)) { g.level.boss.hit(g.particles, g.audio); rb.alive = false; break; }
+        if (rb.overlaps(g.level.boss)) { g.level.boss.hit(g.particles, g.audio, g); rb.alive = false; break; }
       }
     }
 
@@ -10562,7 +11094,7 @@ class GameStateMachine {
           star.collect(); pl.stars++;
           g.audio.collectSound();
           g.particles.sparkleBurst(star.cx, star.cy, 12);
-          g.particles.floatingText(star.cx, star.cy - 10, "+1", "#ffff44");
+          g.addScore(50, star.cx, star.cy, "#ffff44");
           if (pl.stars % 5 === 0 && !pl.hasRainbow) {
             pl.hasRainbow = true;
             g.particles.sparkleBurst(pl.cx, pl.cy, 20);
@@ -10588,7 +11120,13 @@ class GameStateMachine {
               pl.vy = CFG.JUMP_FORCE * bounce;
               g.audio.collectSound();
               g.particles.impactBurst(enemy.cx, enemy.cy, 8, color);
+              g.particles.impactBurst(enemy.cx, enemy.cy, 5, "#ffffff");
               g.particles.floatingText(enemy.cx, enemy.cy - 10, text, color);
+              // Score + combo
+              const isGnome = enemies === g.level.gnomes;
+              g.addComboHit();
+              g.addScore(isGnome ? 200 : 100, enemy.cx, enemy.cy, "#ffdd44");
+              g.camera.shake(3);
             } else {
               pl.hurt(g.particles, g.audio);
             }
@@ -10678,7 +11216,7 @@ class GameStateMachine {
       if (g.level.boss && g.level.boss.alive && !g.level.boss.defeated && pl.alive) {
         if (pl.overlapsPad(g.level.boss, -4, 2)) {
           if (pl.vy > 0 && pl.bottom - 8 < g.level.boss.cy) {
-            g.level.boss.hit(g.particles, g.audio);
+            g.level.boss.hit(g.particles, g.audio, g);
             pl.vy = CFG.JUMP_FORCE * 0.7;
           } else if (g.level.boss.invTimer <= 0) {
             pl.hurt(g.particles, g.audio);
@@ -11071,6 +11609,13 @@ class Game {
     this.countdownStarted = false;
     this.bossIntroPlayed = false;
 
+    // TMNT-style score & combo system
+    this.score = 0;
+    this.combo = 0;
+    this.comboTimer = 0;
+    this.comboDisplay = 0;  // for HUD fade
+    this.comboDisplayTimer = 0;
+
     this.lastTime = 0;
     this.accumulator = 0;
     this.fixedDT = 1 / 60;
@@ -11133,6 +11678,30 @@ class Game {
       reader.readAsDataURL(file);
     });
   }
+  // --- Score & Combo helpers ---
+  addScore(points, x, y, color) {
+    const mult = this.combo > 1 ? this.combo : 1;
+    const total = points * mult;
+    this.score += total;
+    if (x !== undefined && y !== undefined) {
+      this.particles.floatingText(x, y - 16, "+" + total, color || "#ffdd44");
+    }
+  }
+  addComboHit() {
+    this.combo++;
+    this.comboTimer = 2.0; // 2s window
+    if (this.combo > 1) {
+      this.comboDisplay = this.combo;
+      this.comboDisplayTimer = 1.5;
+    }
+  }
+  updateCombo(dt) {
+    if (this.comboTimer > 0) {
+      this.comboTimer -= dt;
+      if (this.comboTimer <= 0) { this.combo = 0; }
+    }
+    if (this.comboDisplayTimer > 0) this.comboDisplayTimer -= dt;
+  }
   startLevel(freshGame) {
     const def = LEVEL_DEFS[this.currentLevelIndex];
     this.level = new Level(def);
@@ -11175,6 +11744,11 @@ class Game {
       this.parallax = new ParallaxBackground(freshDef);
       this.camera.setBounds(this.level.width, this.level.height);
       this.sharedLives = CFG.LIVES;
+      this.score = 0;
+      this.combo = 0;
+      this.comboTimer = 0;
+      this.comboDisplay = 0;
+      this.comboDisplayTimer = 0;
       // Reset all players fully
       for (let i = 0; i < this.players.length; i++) {
         const p = this.players[i];
@@ -11328,6 +11902,18 @@ class Game {
         break;
     }
 
+    // CRT scanline overlay
+    c.fillStyle = "rgba(0,0,0,0.04)";
+    for (let y = 0; y < CFG.H; y += 3) {
+      c.fillRect(0, y, CFG.W, 1);
+    }
+    // Vignette (corner darkening)
+    const vig = c.createRadialGradient(CFG.W/2, CFG.H/2, CFG.W*0.35, CFG.W/2, CFG.H/2, CFG.W*0.7);
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,0,0,0.25)");
+    c.fillStyle = vig;
+    c.fillRect(0, 0, CFG.W, CFG.H);
+
     // Konami Code flash (visible on any screen)
     if (this.konamiFlashTimer > 0) {
       c.save();
@@ -11352,15 +11938,15 @@ class Game {
     const hue1 = (gt * 20) % 360;
     const hue2 = (hue1 + 60) % 360;
     const hue3 = (hue1 + 120) % 360;
-    grd.addColorStop(0, `hsl(${hue1},70%,15%)`);
-    grd.addColorStop(0.5, `hsl(${hue2},60%,20%)`);
-    grd.addColorStop(1, `hsl(${hue3},70%,15%)`);
+    grd.addColorStop(0, `hsl(${hue1},70%,12%)`);
+    grd.addColorStop(0.5, `hsl(${hue2},60%,16%)`);
+    grd.addColorStop(1, `hsl(${hue3},70%,12%)`);
     c.fillStyle = grd;
     c.fillRect(0, 0, CFG.W, CFG.H);
 
     // Stars in background
     const rng = new SeededRNG(42);
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 60; i++) {
       const sx = rng.next() * CFG.W;
       const sy = rng.next() * CFG.H * 0.7;
       const twinkle = Math.sin(gt * 3 + i * 1.5) * 0.4 + 0.6;
@@ -11375,10 +11961,15 @@ class Game {
     c.textAlign = "center";
     c.textBaseline = "middle";
 
+    // "ARCADE" header
+    c.font = "bold 8px monospace";
+    c.fillStyle = "#8866cc";
+    c.fillText("\u2605  A R C A D E  \u2605", CFG.W/2, 45);
+
     // Title shadow
     c.font = "bold 28px monospace";
     c.fillStyle = "rgba(0,0,0,0.5)";
-    c.fillText("RAINBOW UNICORN QUEST", CFG.W/2 + 2, 72);
+    c.fillText("RAINBOW UNICORN QUEST", CFG.W/2 + 2, 68);
 
     // Title with rainbow
     const titleGrd = c.createLinearGradient(CFG.W/2 - 160, 0, CFG.W/2 + 160, 0);
@@ -11388,21 +11979,23 @@ class Game {
       titleGrd.addColorStop(((i / rainbowColors.length) + offset) % 1, rainbowColors[i]);
     }
     c.fillStyle = titleGrd;
-    c.fillText("RAINBOW UNICORN QUEST", CFG.W/2, 70);
+    c.fillText("RAINBOW UNICORN QUEST", CFG.W/2, 66);
 
-    // Subtitle
-    c.font = "bold 14px monospace";
+    // Subtitle with dashes
+    c.font = "bold 12px monospace";
     c.fillStyle = "#66ccff";
-    c.fillText("4 PLAYER  CO-OP  ARCADE", CFG.W/2, 95);
+    c.fillText("\u2501\u2501 RAINBOW QUEST \u2501\u2501", CFG.W/2, 88);
+    c.font = "bold 9px monospace";
+    c.fillStyle = "#88aacc";
+    c.fillText("4 PLAYER CO-OP", CFG.W/2, 100);
 
-    // Four animated characters on title screen
+    // Four animated characters on title screen with colored glow
     const drawH = 50;
-    const frame = Math.floor(gt * 10) % CFG.SPRITE_RUN_FRAMES;
     const charSprites = [
-      { sprite: SPRITES.run, fw: CFG.SPRITE_RUN_FW, fh: CFG.SPRITE_RUN_FH, color: "#ffffff", label: "P1", scale: 0.9 },
-      { sprite: SPRITES.kittycornRun, fw: CFG.SPRITE_KITTYCORN_RUN_FW, fh: CFG.SPRITE_KITTYCORN_RUN_FH, color: "#ff88cc", label: "P2", scale: 0.7, frames: CFG.SPRITE_KITTYCORN_RUN_FRAMES },
-      { sprite: SPRITES.pixicorn, fw: CFG.SPRITE_PIXICORN_FW, fh: CFG.SPRITE_PIXICORN_FH, color: "#cc88ff", label: "P3", scale: 0.9, frames: CFG.SPRITE_PIXICORN_FLY_FRAMES },
-      { sprite: SPRITES.mousicorn, fw: CFG.SPRITE_MOUSICORN_FW, fh: CFG.SPRITE_MOUSICORN_FH, color: "#aa8866", label: "P4", scale: 0.9, frames: CFG.SPRITE_MOUSICORN_RUN_FRAMES },
+      { sprite: SPRITES.run, fw: CFG.SPRITE_RUN_FW, fh: CFG.SPRITE_RUN_FH, color: "#ffffff", label: "STAR", scale: 0.9 },
+      { sprite: SPRITES.kittycornRun, fw: CFG.SPRITE_KITTYCORN_RUN_FW, fh: CFG.SPRITE_KITTYCORN_RUN_FH, color: "#ff88cc", label: "LUNA", scale: 0.7, frames: CFG.SPRITE_KITTYCORN_RUN_FRAMES },
+      { sprite: SPRITES.pixicorn, fw: CFG.SPRITE_PIXICORN_FW, fh: CFG.SPRITE_PIXICORN_FH, color: "#cc88ff", label: "FAYE", scale: 0.9, frames: CFG.SPRITE_PIXICORN_FLY_FRAMES },
+      { sprite: SPRITES.mousicorn, fw: CFG.SPRITE_MOUSICORN_FW, fh: CFG.SPRITE_MOUSICORN_FH, color: "#aa8866", label: "PIP", scale: 0.9, frames: CFG.SPRITE_MOUSICORN_RUN_FRAMES },
     ];
     const spacing = 80;
     const startX = CFG.W / 2 - (spacing * 1.5);
@@ -11411,6 +12004,18 @@ class Game {
       const bobY = Math.sin(gt * 2 + i * 0.8) * 5;
       const cx = startX + i * spacing;
       const dh = drawH * ch.scale;
+      // Colored glow behind character
+      const glowPulse = 0.12 + Math.sin(gt * 3 + i) * 0.06;
+      c.fillStyle = ch.color.replace(")", `,${glowPulse})`).replace("#", "rgba(");
+      // Parse hex color for glow
+      const hr = parseInt(ch.color.slice(1,3), 16);
+      const hg = parseInt(ch.color.slice(3,5), 16);
+      const hb = parseInt(ch.color.slice(5,7), 16);
+      c.fillStyle = `rgba(${hr},${hg},${hb},${glowPulse})`;
+      c.beginPath();
+      c.arc(cx, 148 + bobY, 28, 0, Math.PI * 2);
+      c.fill();
+      // Character sprite
       c.save();
       c.translate(cx, 148 + bobY);
       if (ch.sprite) {
@@ -11426,31 +12031,60 @@ class Game {
         c.fill();
       }
       c.restore();
+      // Character label
       c.font = "bold 8px monospace";
       c.fillStyle = ch.color;
-      c.fillText(ch.label, cx, 118);
-      c.font = "7px monospace";
-      c.fillStyle = "rgba(255,255,255,0.5)";
-      c.fillText(CHARACTER_DEFS[CHARACTER_ORDER[i]].defaultName, cx, 180);
+      c.fillText(ch.label, cx, 115);
+      // P-tag
+      c.font = "6px monospace";
+      c.fillStyle = "rgba(255,255,255,0.4)";
+      c.fillText("P" + (i + 1), cx, 180);
+      // Stat bars (TMNT style: Speed/Power)
+      const barY = 186;
+      const barW = 30;
+      c.font = "5px monospace";
+      c.fillStyle = "rgba(255,255,255,0.35)";
+      c.fillText("SPD", cx - 18, barY);
+      c.fillText("PWR", cx - 18, barY + 8);
+      // Speed bar
+      const speeds = [0.7, 0.9, 0.6, 0.8];
+      const powers = [0.6, 0.5, 0.8, 0.7];
+      c.fillStyle = "rgba(0,0,0,0.3)";
+      c.fillRect(cx - 5, barY - 3, barW, 4);
+      c.fillStyle = "#44cc44";
+      c.fillRect(cx - 5, barY - 3, barW * speeds[i], 4);
+      // Power bar
+      c.fillStyle = "rgba(0,0,0,0.3)";
+      c.fillRect(cx - 5, barY + 5, barW, 4);
+      c.fillStyle = "#ff6644";
+      c.fillRect(cx - 5, barY + 5, barW * powers[i], 4);
     }
 
-    // Instructions
-    const blink = Math.sin(gt * 4) > 0;
-    if (blink) {
-      c.font = "bold 11px monospace";
-      c.fillStyle = "#ffffff";
-      c.fillText("PRESS  ENTER  TO  START", CFG.W/2, 200);
-    }
+    // INSERT COIN text (pulsing)
+    const coinAlpha = 0.5 + Math.sin(gt * 5) * 0.5;
+    c.globalAlpha = coinAlpha;
+    c.font = "bold 12px monospace";
+    c.fillStyle = "#ffdd44";
+    c.fillText("INSERT  COIN", CFG.W/2, 208);
+    c.globalAlpha = 1;
+    c.font = "bold 8px monospace";
+    c.fillStyle = "rgba(255,255,255,0.4)";
+    c.fillText("PRESS  ENTER  TO  START", CFG.W/2, 222);
 
     c.font = "7px monospace";
-    c.fillStyle = "#8866aa";
-    c.fillText("P1: ARROWS + SPACE/SHIFT    P2: WASD + Q/F/X", CFG.W/2, 218);
-    c.fillText("P3 + P4: GAMEPAD ONLY    ALL: GAMEPAD 0-3", CFG.W/2, 230);
+    c.fillStyle = "#665588";
+    c.fillText("P1: ARROWS + SPACE/SHIFT    P2: WASD + Q/F/X", CFG.W/2, 238);
+    c.fillText("P3 + P4: GAMEPAD ONLY    ALL: GAMEPAD 0-3", CFG.W/2, 248);
 
     // Code entry hint
-    c.font = "bold 9px monospace";
+    c.font = "bold 8px monospace";
     c.fillStyle = "#44aaaa";
-    c.fillText("PRESS  C / SELECT  TO  ENTER  SAVE  CODE", CFG.W/2, 252);
+    c.fillText("PRESS  C / SELECT  FOR  SAVE  CODE", CFG.W/2, 261);
+
+    // Copyright line
+    c.font = "5px monospace";
+    c.fillStyle = "rgba(255,255,255,0.15)";
+    c.fillText("\u00A9 UNICORN ARCADE 2025", CFG.W/2, CFG.H - 4);
 
     c.restore();
   }
@@ -11481,40 +12115,63 @@ class Game {
     c.textAlign = "center";
     c.textBaseline = "middle";
 
-    // Heading
-    c.font = "bold 22px monospace";
-    c.fillStyle = "#ffcc44";
-    c.fillText("SELECT  PLAYERS", CFG.W/2, 70);
+    // Heading (TMNT style)
+    c.font = "bold 8px monospace";
+    c.fillStyle = "#8866cc";
+    c.fillText("\u2605  SELECT YOUR HEROES  \u2605", CFG.W/2, 42);
 
-    // Menu items (1-4 players)
+    c.font = "bold 20px monospace";
+    c.fillStyle = "#ffcc44";
+    c.fillText("SELECT  PLAYERS", CFG.W/2, 62);
+
+    // Menu items (1-4 players) with bordered cards
     const items = ["1  PLAYER", "2  PLAYERS", "3  PLAYERS", "4  PLAYERS"];
     const charNames = CHARACTER_ORDER.map(id => CHARACTER_DEFS[id].name);
     const charColors = CHARACTER_ORDER.map(id => CHARACTER_DEFS[id].labelColor);
-    const baseY = CFG.H/2 - 45;
+    const baseY = CFG.H/2 - 35;
     for (let i = 0; i < 4; i++) {
-      const y = baseY + i * 30;
+      const y = baseY + i * 28;
       const isSel = i === sel;
-      c.font = isSel ? "bold 16px monospace" : "bold 12px monospace";
-      c.fillStyle = isSel ? "#ffffff" : "#666688";
+
+      if (isSel) {
+        // Selected item panel
+        const pw = 180, ph = 24;
+        c.fillStyle = "rgba(60,40,100,0.4)";
+        c.fillRect(CFG.W/2 - pw/2, y - ph/2, pw, ph);
+        c.strokeStyle = "#ffcc44";
+        c.lineWidth = 1.5;
+        c.strokeRect(CFG.W/2 - pw/2, y - ph/2, pw, ph);
+
+        // Glow effect
+        c.fillStyle = "rgba(255,200,60,0.06)";
+        c.fillRect(CFG.W/2 - pw/2 - 4, y - ph/2 - 4, pw + 8, ph + 8);
+      }
+
+      c.font = isSel ? "bold 14px monospace" : "bold 11px monospace";
+      c.fillStyle = isSel ? "#ffffff" : "#555577";
       c.fillText(items[i], CFG.W/2, y);
-      // Arrow cursor
+
       if (isSel) {
         const bounce = Math.sin(gt * 6) * 3;
         c.fillStyle = "#44ddee";
-        c.font = "bold 14px monospace";
-        c.fillText("\u25B6", CFG.W/2 - 85 + bounce, y);
-        // Show which characters will play
-        c.font = "8px monospace";
-        const charList = charNames.slice(0, i + 1).join(" + ");
+        c.font = "bold 12px monospace";
+        c.fillText("\u25B6", CFG.W/2 - 80 + bounce, y);
+        // Show which characters will play (colored)
+        c.font = "7px monospace";
+        let charStr = "";
+        for (let ci = 0; ci <= i; ci++) {
+          if (ci > 0) charStr += " + ";
+          charStr += charNames[ci];
+        }
         c.fillStyle = "rgba(255,255,255,0.5)";
-        c.fillText(charList, CFG.W/2, y + 14);
+        c.fillText(charStr, CFG.W/2, y + 12);
       }
     }
 
     // Hint
     c.font = "9px monospace";
     c.fillStyle = "rgba(255,255,255,0.4)";
-    c.fillText("\u25B2\u25BC  SELECT     ENTER  CONFIRM", CFG.W/2, CFG.H - 30);
+    c.fillText("\u25B2\u25BC  SELECT     ENTER  CONFIRM", CFG.W/2, CFG.H - 25);
 
     c.restore();
   }
@@ -12014,6 +12671,16 @@ class Game {
     // Tiles
     this.tileRenderer.drawTiles(c, this.level, camX, camY);
 
+    // Environmental props (behind entities)
+    for (const prop of this.level.props) {
+      // Cull off-screen props
+      if (prop.x + 30 < camX || prop.x - 30 > camX + CFG.W) continue;
+      c.save();
+      c.translate(-camX, -camY);
+      drawProp(c, prop, this.gameTime);
+      c.restore();
+    }
+
     // Dead flowers
     for (const df of this.level.deadFlowers) {
       if (df.alive) {
@@ -12278,7 +12945,7 @@ class Game {
     }
 
     // HUD
-    this.hud.draw(c, this.players, this.gameTime, this.level.levelDef, this.levelTimer, this.activePlayers, this.sharedLives, this.playerNames);
+    this.hud.draw(c, this.players, this.gameTime, this.level.levelDef, this.levelTimer, this.activePlayers, this.sharedLives, this.playerNames, this);
 
     // Death overlay
     if (this.stateMachine.state === STATE_DYING) {

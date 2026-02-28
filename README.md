@@ -14,7 +14,7 @@ A TMNT-style arcade beat-em-up platformer featuring four playable unicorn charac
 |--------|-----------|------|---------|
 | P1 | Unicorn | STAR | Balanced |
 | P2 | Kittycorn | LUNA | Fast |
-| P3 | Pixicorn | FAYE | Powerful |
+| P3 | Piggicorn | OINK | Powerful |
 | P4 | Mousicorn | PIP | Agile |
 
 ## Controls

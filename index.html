@@ -884,7 +884,7 @@ const STORY_SCENES = [
       "bubbles the squid. \"Take this gift!\"",
       "",
       "A magical shell glows... {P1} transforms!",
-      "The Mermicorn! Now swimming is easy!",
+      "The Mericorn! Now swimming is easy!",
       "",
       "The squid waves a tentacle toward the trees.",
       "\"A hawk up there has been crying all day...\""
@@ -897,7 +897,7 @@ const STORY_SCENES = [
       "\"Thank you for being gentle with us,\"",
       "bubbles the squid. \"Take this gift!\"",
       "",
-      "A magical shell glows... Mermicorn power!",
+      "A magical shell glows... Mericorn power!",
       "Now {P1} and {P2} can swim anywhere!",
       "",
       "The squid waves a tentacle toward the trees.",
@@ -995,7 +995,7 @@ const STORY_SCENES = [
       "The rat king smiles. \"Take this, friend!\"",
       "A tiny squeak... the Mousicorn form!",
       "",
-      "Unicorn. Mermicorn. Kittycorn.",
+      "Unicorn. Mericorn. Kittycorn.",
       "Pixicorn. Mousicorn. All five!",
       "",
       "\"I heard a shadow went around the world...\""
@@ -1011,7 +1011,7 @@ const STORY_SCENES = [
       "The rat king smiles. \"Take this, friends!\"",
       "A tiny squeak... the Mousicorn form!",
       "",
-      "Unicorn. Mermicorn. Kittycorn.",
+      "Unicorn. Mericorn. Kittycorn.",
       "Pixicorn. Mousicorn. All five!",
       "",
       "\"I heard a shadow went around the world...\""
@@ -2240,7 +2240,7 @@ class Player extends Entity {
     this.animTimer = 0;
     audio.collectSound();
     particles.sparkleBurst(this.cx, this.cy, 20);
-    particles.floatingText(this.cx, this.cy - 20, "MERMICORN!", "#ff44aa");
+    particles.floatingText(this.cx, this.cy - 20, "MERICORN!", "#ff44aa");
     // Rainbow sparkle burst
     const rc = ["#ff0044","#ff8800","#ffdd00","#00dd44","#0088ff","#8844ff"];
     for (let i = 0; i < 12; i++) {
@@ -7613,7 +7613,7 @@ class SpriteDrawer {
     let celebrateFlip = 1; // extra flip for kittycorn celebrate bounce
 
     if (player.animState === "hoopClear" && player.isMermaid && SPRITES.mermicornVictory) {
-      // Mermicorn victory — flash between frames 2 and 3 for celebration
+      // Mericorn victory — flash between frames 2 and 3 for celebration
       sprite = SPRITES.mermicornVictory;
       srcW = CFG.SPRITE_MERMICORN_VICTORY_FW;
       srcH = CFG.SPRITE_MERMICORN_VICTORY_FH;
@@ -7657,7 +7657,7 @@ class SpriteDrawer {
       srcX = player.animFrame * srcW;
       srcY = 0;
     } else if (player.isMermaid && player.isUnderwater && SPRITES.mermicorn) {
-      // Mermicorn swim sprite — overrides all normal sprites when mermaid + underwater
+      // Mericorn swim sprite — overrides all normal sprites when mermaid + underwater
       sprite = SPRITES.mermicorn;
       srcW = CFG.SPRITE_MERMICORN_FW;
       srcH = CFG.SPRITE_MERMICORN_FH;

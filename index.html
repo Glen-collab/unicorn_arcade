@@ -1723,12 +1723,11 @@ class AudioManager {
   shrinkSound() { if (!this._sfx("shrink")) this.playSFX("sawtooth", 200, 0.3, 80, 0.3); }
   hurtSound() { if (!this._sfx("hurtGeneric")) this.playSFX("sawtooth", 200, 0.3, 80, 0.3); }
   hoopSound() {
-    if (!this._sfx("hoop")) {
-      this.playSFX("sine", 523, 0.12, 523, 0.3);
-      setTimeout(() => this.playSFX("sine", 659, 0.12, 659, 0.3), 120);
-      setTimeout(() => this.playSFX("sine", 784, 0.12, 784, 0.3), 240);
-      setTimeout(() => this.playSFX("sine", 1047, 0.25, 1047, 0.35), 360);
-    }
+    // Always use synth fanfare (ascending chime) — character-neutral
+    this.playSFX("sine", 523, 0.12, 523, 0.3);
+    setTimeout(() => this.playSFX("sine", 659, 0.12, 659, 0.3), 120);
+    setTimeout(() => this.playSFX("sine", 784, 0.12, 784, 0.3), 240);
+    setTimeout(() => this.playSFX("sine", 1047, 0.25, 1047, 0.35), 360);
   }
   landSound() { this.playSFX("triangle", 100, 0.1, 60, 0.15); }
   menuSelect() { this.playSFX("square", 600, 0.08, 900, 0.2); }
@@ -1763,6 +1762,7 @@ class AudioManager {
   celebrateSound(player) {
     // Use characterId for reliable character-specific sounds
     const charId = player.characterId;
+    console.log("[Audio] celebrateSound charId=" + charId + " isMermaid=" + player.isMermaid);
     if (player.isMermaid) { this._sfx("celebrateMermaid"); }
     else if (charId === "kittycorn") { this._sfx("celebrateKittycorn"); }
     else if (charId === "piggicorn") { this._sfx("celebratePixicorn"); }
@@ -1772,7 +1772,7 @@ class AudioManager {
       setTimeout(() => this._sfx("celebrateMouseicorn"), 300);
       setTimeout(() => this._sfx("celebrateMouseicorn"), 600);
     }
-    else { this.levelCompleteSound(); }
+    else { console.warn("[Audio] celebrateSound FALLBACK to unicorn neigh for charId=" + charId); this.levelCompleteSound(); }
   }
   fireBossSound() {
     if (!this._sfx("fireBoss")) this.playSFX("sawtooth", 150, 0.2, 80, 0.2);

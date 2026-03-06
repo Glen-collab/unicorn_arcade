@@ -188,12 +188,26 @@ const CFG = {
   // Narwhal enemies (underwater)
   NARWHAL_SPD: 1.0,
 
-  // Underwater physics (Mario-style sluggish swimming)
-  UNDERWATER_GRAVITY: 0.10,
-  UNDERWATER_MAX_FALL: 1.8,
-  UNDERWATER_JUMP_FORCE: -3.0,
-  UNDERWATER_SPEED: 0.9,         // very slow swim (Mario sluggish feel)
-  UNDERWATER_ACCEL: 0.10,        // sluggish acceleration
+  // Underwater swimming physics (free 2D swimming)
+  UNDERWATER_GRAVITY: 0.03,      // very gentle downward drift
+  UNDERWATER_MAX_FALL: 1.2,      // slow max sink
+  UNDERWATER_JUMP_FORCE: -3.0,   // swim burst force
+  UNDERWATER_SPEED: 1.4,         // base horizontal swim speed
+  UNDERWATER_ACCEL: 0.12,        // swim acceleration
+  UNDERWATER_SWIM_SPEED: 1.8,    // vertical swim speed
+  UNDERWATER_SWIM_ACCEL: 0.15,   // vertical swim acceleration
+  UNDERWATER_SWIM_DECEL: 0.08,   // vertical swim deceleration (drift to stop)
+  UNDERWATER_MAX_Z: 90,          // max swim height (don't swim off screen)
+  // Character-specific swim speeds (horizontal)
+  SWIM_SPEED_MOUSICORN: 1.8,    // fastest swimmer — small and zippy
+  SWIM_SPEED_UNICORN: 1.4,      // medium
+  SWIM_SPEED_KITTYCORN: 1.4,    // medium (same as unicorn)
+  SWIM_SPEED_PIGGICORN: 1.0,    // slowest — heavy pig
+  // Character-specific swim vertical speeds
+  SWIM_VSPEED_MOUSICORN: 2.2,
+  SWIM_VSPEED_UNICORN: 1.8,
+  SWIM_VSPEED_KITTYCORN: 1.8,
+  SWIM_VSPEED_PIGGICORN: 1.4,
   // Mermaid form (Frog Mario — fast and responsive)
   MERMAID_SPEED: 2.2,            // fast swimmer
   MERMAID_JUMP_FORCE: -4.5,      // strong kick
@@ -1747,10 +1761,12 @@ class AudioManager {
     }
   }
   celebrateSound(player) {
+    // Use characterId for reliable character-specific sounds
+    const charId = player.characterId;
     if (player.isMermaid) { this._sfx("celebrateMermaid"); }
-    else if (player.isKittycorn) { this._sfx("celebrateKittycorn"); }
-    else if (player.isPiggicorn) { this._sfx("celebratePixicorn"); }
-    else if (player.isMouseicorn) {
+    else if (charId === "kittycorn") { this._sfx("celebrateKittycorn"); }
+    else if (charId === "piggicorn") { this._sfx("celebratePixicorn"); }
+    else if (charId === "mousicorn") {
       // Triple squeak! Play 3 back-to-back
       this._sfx("celebrateMouseicorn");
       setTimeout(() => this._sfx("celebrateMouseicorn"), 300);
@@ -1814,10 +1830,11 @@ class AudioManager {
   }
   // Form-aware poop dispatcher (WAV variants first, synth fallback)
   formPoopSound(player) {
+    const charId = player.characterId;
     if (player.isMermaid) { if (!this._sfxRandom("mermaidPoop", 3)) this.mermaidPoopSound(); }
-    else if (player.isKittycorn) { if (!this._sfxRandom("kittycornPoop", 3)) this.kittycornPoopSound(); }
-    else if (player.isPiggicorn) { if (!this._sfxRandom("pixicornPoop", 3)) this.pixicornPoopSound(); }
-    else if (player.isMouseicorn) { if (!this._sfxRandom("mousicornPoop", 3)) this.mousicornPoopSound(); }
+    else if (charId === "kittycorn") { if (!this._sfxRandom("kittycornPoop", 3)) this.kittycornPoopSound(); }
+    else if (charId === "piggicorn") { if (!this._sfxRandom("pixicornPoop", 3)) this.pixicornPoopSound(); }
+    else if (charId === "mousicorn") { if (!this._sfxRandom("mousicornPoop", 3)) this.mousicornPoopSound(); }
     else { this.poopSound(); }
   }
 }
@@ -1924,6 +1941,7 @@ const PARTICLE_DUST    = 0;
 const PARTICLE_SPARKLE = 1;
 const PARTICLE_TEXT    = 2;
 const PARTICLE_BURST   = 3;
+const PARTICLE_BUBBLE  = 4;
 
 class Particle {
   constructor() { this.alive = false; }
@@ -1998,6 +2016,20 @@ class ParticleSystem {
       });
     }
   }
+  bubbleBurst(x, y, count) {
+    for (let i = 0; i < count; i++) {
+      this.emit(PARTICLE_BUBBLE, x + (Math.random()-0.5)*12, y, {
+        vx: (Math.random()-0.5) * 0.8,
+        vy: -Math.random() * 1.5 - 0.5,
+        life: 0.8 + Math.random() * 0.6,
+        size: 2 + Math.random() * 3,
+        color: "rgba(150,200,255,0.6)",
+        gravity: -0.03,
+        friction: 0.98,
+        shrink: false,
+      });
+    }
+  }
   floatingText(x, y, text, color) {
     this.emit(PARTICLE_TEXT, x, y, {
       vx: 0, vy: -1.5,
@@ -2043,6 +2075,18 @@ class ParticleSystem {
         ctx.rotate(Math.PI/4);
         ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
         ctx.restore();
+      } else if (p.type === PARTICLE_BUBBLE) {
+        // Bubble — hollow circle with highlight
+        ctx.strokeStyle = "rgba(180,220,255," + (p.alpha * 0.7) + ")";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(sx, sy, p.size, 0, Math.PI*2);
+        ctx.stroke();
+        // Highlight dot
+        ctx.fillStyle = "rgba(255,255,255," + (p.alpha * 0.5) + ")";
+        ctx.beginPath();
+        ctx.arc(sx - p.size * 0.3, sy - p.size * 0.3, p.size * 0.25, 0, Math.PI*2);
+        ctx.fill();
       } else {
         // Dust or burst - circle
         ctx.fillStyle = p.color;
@@ -2344,11 +2388,32 @@ class Player extends Entity {
 
     // Speed modifiers
     const underwater = this.isUnderwater;
-    const maxSpeed = underwater
-      ? (this.isMermaid ? CFG.MERMAID_SPEED : CFG.UNDERWATER_SPEED)
-      : (this.isMouseicorn ? CFG.MOUSICORN_SPEED : (this.isKittycorn ? CFG.PLAYER_SPEED * 1.1 : CFG.PLAYER_SPEED));
-    const accel = underwater ? (this.isMermaid ? CFG.MERMAID_ACCEL : CFG.UNDERWATER_ACCEL) : CFG.PLAYER_ACCEL;
-    const decel = underwater ? CFG.PLAYER_DECEL * 0.4 : CFG.PLAYER_DECEL;
+    let maxSpeed, accel, decel;
+    if (underwater) {
+      // Character-specific swim speeds
+      const charId = this.characterId;
+      if (this.isMermaid) {
+        maxSpeed = CFG.MERMAID_SPEED;
+        accel = CFG.MERMAID_ACCEL;
+      } else if (charId === "mousicorn") {
+        maxSpeed = CFG.SWIM_SPEED_MOUSICORN;
+        accel = CFG.UNDERWATER_ACCEL * 1.3;
+      } else if (charId === "piggicorn") {
+        maxSpeed = CFG.SWIM_SPEED_PIGGICORN;
+        accel = CFG.UNDERWATER_ACCEL * 0.8;
+      } else if (charId === "kittycorn") {
+        maxSpeed = CFG.SWIM_SPEED_KITTYCORN;
+        accel = CFG.UNDERWATER_ACCEL;
+      } else {
+        maxSpeed = CFG.SWIM_SPEED_UNICORN;
+        accel = CFG.UNDERWATER_ACCEL;
+      }
+      decel = CFG.PLAYER_DECEL * 0.4;
+    } else {
+      maxSpeed = this.isMouseicorn ? CFG.MOUSICORN_SPEED : (this.isKittycorn ? CFG.PLAYER_SPEED * 1.1 : CFG.PLAYER_SPEED);
+      accel = CFG.PLAYER_ACCEL;
+      decel = CFG.PLAYER_DECEL;
+    }
 
     // === Horizontal movement (left/right) ===
     let moveDir = 0;
@@ -2364,82 +2429,158 @@ class Player extends Entity {
     }
     this.vx = this.speedX;
 
-    // === Depth movement (up/down on floor plane) ===
-    let depthDir = 0;
-    if (input.up) depthDir = -1;     // walk away from camera (decrease floorY)
-    if (input.down) depthDir = 1;    // walk toward camera (increase floorY)
-    if (depthDir !== 0) {
-      this.speedFloorY += depthDir * CFG.DEPTH_ACCEL;
-      this.speedFloorY = Math.max(-CFG.DEPTH_SPEED, Math.min(CFG.DEPTH_SPEED, this.speedFloorY));
+    if (underwater) {
+      // === UNDERWATER: Up/Down controls vertical swimming (Z axis) ===
+      let swimDir = 0;
+      if (input.up) swimDir = 1;      // swim up (increase z)
+      if (input.down) swimDir = -1;   // swim down (decrease z)
+      // Character-specific vertical swim speed
+      const charId = this.characterId;
+      let maxVSwim = CFG.SWIM_VSPEED_UNICORN;
+      if (this.isMermaid) maxVSwim = 2.5;
+      else if (charId === "mousicorn") maxVSwim = CFG.SWIM_VSPEED_MOUSICORN;
+      else if (charId === "piggicorn") maxVSwim = CFG.SWIM_VSPEED_PIGGICORN;
+      else if (charId === "kittycorn") maxVSwim = CFG.SWIM_VSPEED_KITTYCORN;
+
+      if (!this._swimSpeedZ) this._swimSpeedZ = 0;
+      if (swimDir !== 0) {
+        this._swimSpeedZ += swimDir * CFG.UNDERWATER_SWIM_ACCEL;
+        this._swimSpeedZ = Math.max(-maxVSwim, Math.min(maxVSwim, this._swimSpeedZ));
+      } else {
+        // Drift to stop
+        if (this._swimSpeedZ > 0) this._swimSpeedZ = Math.max(0, this._swimSpeedZ - CFG.UNDERWATER_SWIM_DECEL);
+        else if (this._swimSpeedZ < 0) this._swimSpeedZ = Math.min(0, this._swimSpeedZ + CFG.UNDERWATER_SWIM_DECEL);
+      }
+      this.vz = -this._swimSpeedZ; // negative vz = going up (z increases)
+
+      // Keep belt-scroll depth locked to middle (slight drift for visual depth)
+      const midFloorY = (CFG.FLOOR_Y_MIN + CFG.FLOOR_Y_MAX) / 2;
+      this.speedFloorY = (midFloorY - this.floorY) * 0.05; // gently center
+      this.vFloorY = this.speedFloorY;
+
+      // Jump button = swim burst (speed boost in swim direction)
+      if (input.jump) {
+        const burstForce = 2.5;
+        if (swimDir !== 0) {
+          this._swimSpeedZ += swimDir * burstForce;
+          this._swimSpeedZ = Math.max(-maxVSwim * 1.5, Math.min(maxVSwim * 1.5, this._swimSpeedZ));
+        } else if (moveDir !== 0) {
+          this.speedX += moveDir * burstForce;
+          this.speedX = Math.max(-maxSpeed * 1.3, Math.min(maxSpeed * 1.3, this.speedX));
+        } else {
+          // Default burst: swim upward
+          this._swimSpeedZ += burstForce;
+          this._swimSpeedZ = Math.min(maxVSwim * 1.5, this._swimSpeedZ);
+        }
+        // Bubble burst on swim kick
+        particles.bubbleBurst(this.cx, this.cy, 3);
+      }
+
+      // Emit swim trail bubbles while moving
+      this._swimBubbleTimer = (this._swimBubbleTimer || 0) + dt;
+      const isMoving = Math.abs(this.speedX) > 0.3 || Math.abs(this._swimSpeedZ) > 0.3;
+      if (isMoving && this._swimBubbleTimer > 0.15) {
+        this._swimBubbleTimer = 0;
+        particles.emit(PARTICLE_BUBBLE, this.cx - this.facing * 8, this.cy, {
+          vx: -this.facing * 0.3 + (Math.random()-0.5) * 0.4,
+          vy: -Math.random() * 0.8 - 0.3,
+          life: 0.6 + Math.random() * 0.4,
+          size: 1.5 + Math.random() * 2,
+          color: "rgba(150,200,255,0.5)",
+          gravity: -0.02,
+          friction: 0.98,
+          shrink: false,
+        });
+      }
+
+      // No jump/double-jump/triple-jump logic underwater — swim burst replaces it
+      this.onGround = false; // always "floating" underwater
     } else {
-      if (this.speedFloorY > 0) this.speedFloorY = Math.max(0, this.speedFloorY - CFG.DEPTH_DECEL);
-      else if (this.speedFloorY < 0) this.speedFloorY = Math.min(0, this.speedFloorY + CFG.DEPTH_DECEL);
+      // === LAND: Depth movement (up/down on floor plane) ===
+      let depthDir = 0;
+      if (input.up) depthDir = -1;     // walk away from camera (decrease floorY)
+      if (input.down) depthDir = 1;    // walk toward camera (increase floorY)
+      if (depthDir !== 0) {
+        this.speedFloorY += depthDir * CFG.DEPTH_ACCEL;
+        this.speedFloorY = Math.max(-CFG.DEPTH_SPEED, Math.min(CFG.DEPTH_SPEED, this.speedFloorY));
+      } else {
+        if (this.speedFloorY > 0) this.speedFloorY = Math.max(0, this.speedFloorY - CFG.DEPTH_DECEL);
+        else if (this.speedFloorY < 0) this.speedFloorY = Math.min(0, this.speedFloorY + CFG.DEPTH_DECEL);
+      }
+      this.vFloorY = this.speedFloorY;
+      this._swimSpeedZ = 0; // reset swim state on land
+
+      // === Coyote time (z-axis) ===
+      if (this.onGround) {
+        this.coyoteTimer = CFG.COYOTE_TIME;
+        this.canDoubleJump = this.hasWings;
+        this.canTripleJump = this.hasWings;
+      } else {
+        this.coyoteTimer -= dt;
+      }
+
+      // Jump buffer
+      if (input.jump) {
+        this.jumpBufferTimer = CFG.JUMP_BUFFER;
+      } else {
+        this.jumpBufferTimer -= dt;
+      }
+
+      // === Jump (Z axis) ===
+      const jumpForce = CFG.BELT_JUMP_FORCE;
+      const baseDblJump = this.isKittycorn ? CFG.DOUBLE_JUMP_FORCE * 1.3 : CFG.DOUBLE_JUMP_FORCE;
+
+      if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0) {
+        this.vz = jumpForce;
+        this.onGround = false;
+        this.coyoteTimer = 0;
+        this.jumpBufferTimer = 0;
+        this.jumpType = "first";
+        audio.jumpSound();
+      } else if (input.jump && !this.onGround && this.canDoubleJump) {
+        this.vz = baseDblJump;
+        this.canDoubleJump = false;
+        this.jumpType = "double";
+        audio.doubleJumpSound();
+        particles.sparkleBurst(this.cx, this.cy, 6);
+      } else if (input.jump && !this.onGround && !this.canDoubleJump && this.canTripleJump) {
+        this.vz = CFG.TRIPLE_JUMP_FORCE;
+        this.canTripleJump = false;
+        this.jumpType = "triple";
+        audio.doubleJumpSound();
+        particles.sparkleBurst(this.cx, this.cy, 10);
+        particles.floatingText(this.cx, this.cy - 15, "WING BOOST!", "#cc88ff");
+      }
+
+      // Variable jump height
+      if (!input.jumpHeld && this.vz < -2) {
+        this.vz *= 0.4;
+      }
     }
-    this.vFloorY = this.speedFloorY;
 
-    // === Coyote time (z-axis) ===
-    if (this.onGround) {
-      this.coyoteTimer = CFG.COYOTE_TIME;
-      this.canDoubleJump = this.hasWings;
-      this.canTripleJump = this.hasWings;
-    } else {
-      this.coyoteTimer -= dt;
-    }
-
-    // Jump buffer
-    if (input.jump) {
-      this.jumpBufferTimer = CFG.JUMP_BUFFER;
-    } else {
-      this.jumpBufferTimer -= dt;
-    }
-
-    // === Jump (Z axis) ===
-    const jumpForce = CFG.BELT_JUMP_FORCE;
-    const baseDblJump = this.isKittycorn ? CFG.DOUBLE_JUMP_FORCE * 1.3 : CFG.DOUBLE_JUMP_FORCE;
-
-    if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0) {
-      this.vz = jumpForce;
-      this.onGround = false;
-      this.coyoteTimer = 0;
-      this.jumpBufferTimer = 0;
-      this.jumpType = "first";
-      audio.jumpSound();
-    } else if (input.jump && !this.onGround && this.canDoubleJump) {
-      this.vz = baseDblJump;
-      this.canDoubleJump = false;
-      this.jumpType = "double";
-      audio.doubleJumpSound();
-      particles.sparkleBurst(this.cx, this.cy, 6);
-    } else if (input.jump && !this.onGround && !this.canDoubleJump && this.canTripleJump) {
-      this.vz = CFG.TRIPLE_JUMP_FORCE;
-      this.canTripleJump = false;
-      this.jumpType = "triple";
-      audio.doubleJumpSound();
-      particles.sparkleBurst(this.cx, this.cy, 10);
-      particles.floatingText(this.cx, this.cy - 15, "WING BOOST!", "#cc88ff");
-    }
-
-    // Variable jump height
-    if (!input.jumpHeld && this.vz < -2) {
-      this.vz *= 0.4;
-    }
-
-    // === Poop ===
+    // === Poop / Bubbles ===
     if (this.poopCooldown > 0) this.poopCooldown -= dt;
     if (input.poop && this.poopCooldown <= 0 && this.poopTimer <= 0) {
-      this.isStandPooping = this.onGround && Math.abs(this.speedX) < 0.3;
-      this.poopTimer = this.isStandPooping ? 0.6 : 0.15;
-      this.poopCooldown = 1.0;
-      this.animFrame = 0;
-      this.animTimer = 0;
-      if (!this.isStandPooping) {
-        this._spawnPoop = true;
+      if (underwater) {
+        // Underwater: blow bubbles instead of poop
+        this.poopTimer = 0.15;
+        this.poopCooldown = 0.5;
+        this._spawnBubbles = true;
+      } else {
+        this.isStandPooping = this.onGround && Math.abs(this.speedX) < 0.3;
+        this.poopTimer = this.isStandPooping ? 0.6 : 0.15;
+        this.poopCooldown = 1.0;
+        this.animFrame = 0;
+        this.animTimer = 0;
+        if (!this.isStandPooping) {
+          this._spawnPoop = true;
+        }
       }
     }
     if (this.poopTimer > 0) {
       this.poopTimer -= dt;
       this.animTimer += dt;
-      if (this.isStandPooping) {
+      if (this.isStandPooping && !underwater) {
         const maxFrames = this.hasWings ? CFG.SPRITE_STAND_POOP_WINGS_FRAMES : CFG.SPRITE_STAND_POOP_FRAMES;
         const frameDur = 0.6 / maxFrames;
         this.animFrame = Math.min(maxFrames - 1, Math.floor(this.animTimer / frameDur));
@@ -2457,16 +2598,24 @@ class Player extends Entity {
     }
 
     // === Gravity on Z axis ===
-    let grav = CFG.BELT_GRAVITY;
-    if (this.isKittycorn && this.vz < 0) grav *= 0.85; // floatier while rising
-    this.vz += grav;
-    if (this.vz > CFG.BELT_MAX_FALL) this.vz = CFG.BELT_MAX_FALL;
+    if (underwater) {
+      // Underwater: very gentle gravity (slight downward drift when idle)
+      this.vz += CFG.UNDERWATER_GRAVITY;
+      if (this.vz > CFG.UNDERWATER_MAX_FALL) this.vz = CFG.UNDERWATER_MAX_FALL;
+      // Clamp max height
+      if (this.z > CFG.UNDERWATER_MAX_Z) { this.z = CFG.UNDERWATER_MAX_Z; if (this.vz < 0) this.vz = 0; this._swimSpeedZ = 0; }
+    } else {
+      let grav = CFG.BELT_GRAVITY;
+      if (this.isKittycorn && this.vz < 0) grav *= 0.85; // floatier while rising
+      this.vz += grav;
+      if (this.vz > CFG.BELT_MAX_FALL) this.vz = CFG.BELT_MAX_FALL;
+    }
 
     // === Move and collide (belt-scroll) ===
     this.moveAndCollide(level);
 
     // === Landing detection ===
-    if (this.onGround && !this.wasOnGround) {
+    if (!underwater && this.onGround && !this.wasOnGround) {
       this.landImpact = Math.abs(prevVZ);
       if (this.landImpact > 2) {
         particles.dustBurst(this.cx, this.floorY, Math.min(8, Math.floor(this.landImpact)));
@@ -2484,8 +2633,8 @@ class Player extends Entity {
       if (this.squash < 0.01) this.squash = 0;
     }
 
-    // Running dust
-    if (this.onGround && Math.abs(this.speedX) > 1.5) {
+    // Running dust (land) or ambient bubbles (underwater)
+    if (!underwater && this.onGround && Math.abs(this.speedX) > 1.5) {
       this.runDust += dt;
       if (this.runDust > 0.08) {
         this.runDust = 0;
@@ -2515,13 +2664,19 @@ class Player extends Entity {
     if (this.floorY < CFG.FLOOR_Y_MIN) { this.floorY = CFG.FLOOR_Y_MIN; this.speedFloorY = 0; }
     if (this.floorY > CFG.FLOOR_Y_MAX) { this.floorY = CFG.FLOOR_Y_MAX; this.speedFloorY = 0; }
 
-    // Z axis (jump/fall)
+    // Z axis (jump/fall or swim)
     this.z -= this.vz; // vz is negative when jumping up, z increases upward
-    this.onGround = false;
-    if (this.z <= 0) {
-      this.z = 0;
-      this.vz = 0;
-      this.onGround = true;
+    if (this.isUnderwater) {
+      // Underwater: clamp z but don't ground — player is always "floating"
+      if (this.z <= 0) { this.z = 0; if (this.vz > 0) this.vz = 0; if (this._swimSpeedZ < 0) this._swimSpeedZ = 0; }
+      this.onGround = false;
+    } else {
+      this.onGround = false;
+      if (this.z <= 0) {
+        this.z = 0;
+        this.vz = 0;
+        this.onGround = true;
+      }
     }
   }
   updateAnim(dt) {
@@ -2530,7 +2685,11 @@ class Player extends Entity {
       this.animState = "standPoop";
       return;
     }
-    if (this.z > 0) {
+    if (this.isUnderwater) {
+      // Underwater: use run anim when swimming, idle when floating still
+      const moving = Math.abs(this.speedX) > 0.3 || Math.abs(this._swimSpeedZ || 0) > 0.3;
+      this.animState = moving ? "run" : "idle";
+    } else if (this.z > 0) {
       this.animState = this.vz < 0 ? "jump" : "fall";
     } else if (Math.abs(this.speedX) > 0.3 || Math.abs(this.speedFloorY) > 0.3) {
       this.animState = "run";
@@ -2561,7 +2720,12 @@ class Player extends Entity {
     } else {
       // Took a hit but still alive — invincibility frames + knockback
       this.invTimer = 1.5;
-      this.vz = CFG.BELT_JUMP_FORCE * 0.4; // small knockback bounce
+      if (this.isUnderwater) {
+        this.vz = CFG.BELT_JUMP_FORCE * 0.2; // gentler underwater knockback
+        this._swimSpeedZ = 1.0;
+      } else {
+        this.vz = CFG.BELT_JUMP_FORCE * 0.4; // small knockback bounce
+      }
       particles.floatingText(this.cx, this.cy - 15, "-1", "#ff4444");
     }
   }
@@ -2607,6 +2771,9 @@ class Player extends Entity {
     this._spawnPoop = false;
     this._spawnStandPoop = false;
     this._spawnRainbow = false;
+    this._spawnBubbles = false;
+    this._swimSpeedZ = 0;
+    this._swimBubbleTimer = 0;
     this.mermaidTransformTimer = 0;
     this.piggicornTransformTimer = 0;
     this.mousicornTransformTimer = 0;
@@ -7425,9 +7592,9 @@ class SpriteDrawer {
     // Kittycorn is half size (she's a cat, not a horse!)
     let sizeScale = player.isBig ? 0.825 : 0.65;
     if (player.isMermaid && player.isUnderwater) sizeScale = 0.7;
-    else if (player.isMouseicorn && !player.isUnderwater) sizeScale = 0.85;
+    else if (player.isMouseicorn) sizeScale = 0.85;
     else if (player.isPiggicorn) sizeScale = 0.85;
-    else if (player.isKittycorn && !player.isUnderwater) sizeScale *= 0.5;
+    else if (player.isKittycorn) sizeScale *= 0.5;
     const dw = CFG.PLAYER_DRAW_W * sizeScale;
     const dh = CFG.PLAYER_DRAW_H * sizeScale;
 
@@ -7460,7 +7627,7 @@ class SpriteDrawer {
       srcH = CFG.SPRITE_PIGGICORN_FH;
       srcX = CFG.SPRITE_PIGGICORN_VICTORY_FRAME * srcW;  // victory frame
       srcY = 0;
-    } else if (player.animState === "hoopClear" && player.isMouseicorn && !player.isUnderwater && SPRITES.mousicorn) {
+    } else if (player.animState === "hoopClear" && player.isMouseicorn && SPRITES.mousicorn) {
       sprite = SPRITES.mousicorn;
       srcW = CFG.SPRITE_MOUSICORN_FW;
       srcH = CFG.SPRITE_MOUSICORN_FH;
@@ -7498,7 +7665,7 @@ class SpriteDrawer {
       const swimFrame = Math.floor(gt * swimSpeed) % CFG.SPRITE_MERMICORN_FRAMES;
       srcX = swimFrame * srcW;
       srcY = 0;
-    } else if (player.isPiggicorn && !player.isUnderwater) {
+    } else if (player.isPiggicorn) {
       // Piggicorn sprites — frame 1 stand, frames 2-5 run (skip frame 0)
       if (SPRITES.piggicorn) {
         sprite = SPRITES.piggicorn;
@@ -7514,8 +7681,8 @@ class SpriteDrawer {
         }
         srcY = 0;
       }
-    } else if (player.isMouseicorn && !player.isUnderwater) {
-      // Mousicorn sprites — small scurrying mouse unicorn on land
+    } else if (player.isMouseicorn) {
+      // Mousicorn sprites — works on land and underwater
       if (SPRITES.mousicorn) {
         sprite = SPRITES.mousicorn;
         srcW = CFG.SPRITE_MOUSICORN_FW;
@@ -7535,7 +7702,7 @@ class SpriteDrawer {
         }
         srcY = 0;
       }
-    } else if (player.isKittycorn && !player.isUnderwater) {
+    } else if (player.isKittycorn) {
       // Kittycorn sprites — overrides normal sprites on land when kittycorn
       if (player.animState === "standPoop" && SPRITES.kittycornStandPoop) {
         sprite = SPRITES.kittycornStandPoop;
@@ -7643,7 +7810,7 @@ class SpriteDrawer {
       const drawW = srcW * scaleRatio;
       const drawH = drawOverrideH;
       let footAdj = 5;
-      if (player.isMouseicorn && !player.isUnderwater) footAdj = 19;
+      if (player.isMouseicorn) footAdj = 19;
       if (celebrateFlip !== 1) c.scale(celebrateFlip, 1);
       c.drawImage(
         drawSprite,
@@ -10331,10 +10498,15 @@ class GameStateMachine {
         audio.stopCountdown();
         const nextIdx = g.currentLevelIndex + 1;
         const isGameComplete = nextIdx >= LEVEL_DEFS.length;
-        // Find the player that completed (touched hoop / boss defeated)
-        const completingPlayer = g._completingPlayer || g.player;
+        // Play ALL active players' celebration sounds (crowd effect)
         setTimeout(() => {
-          audio.celebrateSound(completingPlayer);
+          let delay = 0;
+          for (let i = 0; i < g.players.length; i++) {
+            if (!g.activePlayers[i] || !g.players[i].alive) continue;
+            const p = g.players[i];
+            setTimeout(() => audio.celebrateSound(p), delay);
+            delay += 150; // stagger for crowd effect
+          }
           if (isGameComplete) {
             setTimeout(() => audio.playMusic("game_complete", false), 1500);
           }
@@ -10723,6 +10895,13 @@ class GameStateMachine {
     // Spawn standing poop / poop / rainbow bolt for BOTH players
     for (const p of players) {
       if (!p.alive) continue;
+      // Underwater bubble spawn (replaces poop)
+      if (p._spawnBubbles) {
+        p._spawnBubbles = false;
+        g.particles.bubbleBurst(p.cx + p.facing * 10, p.cy - 5, 6);
+        // Play a bubbly sound
+        g.audio.playSFX("sine", 800 + Math.random() * 400, 0.06, 1200, 0.15);
+      }
       if (p._spawnStandPoop) {
         p._spawnStandPoop = false;
         const poop = new Poop(p.cx - p.facing * 20, p.screenY + p.h - 20, 0, 0, p.floorY);
@@ -10745,7 +10924,7 @@ class GameStateMachine {
       }
       if (p._spawnRainbow) {
         p._spawnRainbow = false;
-        const isKittySmall = (p.isKittycorn && !p.isUnderwater);
+        const isKittySmall = p.isKittycorn;
         const isSmallUni = !p.isBig && !p.isMermaid && !p.isKittycorn && !p.isPiggicorn && !p.isMouseicorn;
         const hornOffsetX = isKittySmall ? 8 : (isSmallUni ? 12 : 16);
         const hornOffsetY = isKittySmall ? (p.h * 0.3) : (isSmallUni ? 3 : 4);
@@ -10942,7 +11121,8 @@ class GameStateMachine {
             if (pl.z > 2) {
               // Player is airborne — stomp the enemy (invincible during stomp)
               enemy.hp = (enemy.hp || 1) - 1;
-              pl.vz = CFG.BELT_JUMP_FORCE * bounce;
+              pl.vz = (pl.isUnderwater ? CFG.BELT_JUMP_FORCE * 0.4 : CFG.BELT_JUMP_FORCE) * bounce;
+              if (pl.isUnderwater) { pl._swimSpeedZ = 1.5; } // gentle upward swim after stomp
               pl.invTimer = 0.4; // brief invincibility after stomp
               g.audio.collectSound();
               g.particles.impactBurst(enemy.cx, enemy.cy, 8, color);
@@ -11250,13 +11430,12 @@ class GameStateMachine {
     const g = this.game;
     const slot = this.charSelectSlot;
     const input = g.inputs[slot] || g.input;
-    const altInput = g.input; // P1 can also control for accessibility
 
-    const leftP = input.pressed("ArrowLeft") || altInput.pressed("ArrowLeft");
-    const rightP = input.pressed("ArrowRight") || altInput.pressed("ArrowRight");
-    const enterP = input.pressed("Enter") || altInput.pressed("Enter");
-    const gpA = input.pressed("_gpA") || altInput.pressed("_gpA");
-    const escP = input.pressed("Escape") || (g.input.pressed("Escape"));
+    const leftP = input.pressed("ArrowLeft");
+    const rightP = input.pressed("ArrowRight");
+    const enterP = input.pressed("Enter");
+    const gpA = input.pressed("_gpA");
+    const escP = input.pressed("Escape") || g.input.pressed("Escape");
 
     if (escP && this.stateTimer > 0.3) {
       if (this.charSelectSlot > 0) {
@@ -11292,6 +11471,8 @@ class GameStateMachine {
         // Next player picks
         this.charSelectSlot = slot + 1;
         this.stateTimer = 0;
+        // Clear all justPressed to prevent carry-over to next player
+        for (const inp of g.inputs) inp.justPressed = {};
       } else {
         // All players picked — go to name entry for P1
         this.nameEntrySlot = 1;
@@ -11309,11 +11490,9 @@ class GameStateMachine {
     const g = this.game;
     const slotIdx = this.nameEntrySlot - 1;
     const input = g.inputs[slotIdx] || g.input;
-    // Also allow P1 input for any slot's name (in case of single controller)
-    const altInput = g.input;
 
     // --- Keyboard input ---
-    const letter = input.consumeLetter() || (this.nameEntrySlot === 2 ? altInput.consumeLetter() : null);
+    const letter = input.consumeLetter();
     if (letter === "ESCAPE") {
       // Go back
       if (this.nameEntrySlot > 1) {
@@ -11335,7 +11514,7 @@ class GameStateMachine {
       return;
     }
     // Enter key submits name (keyboard or gamepad Start)
-    if ((input.pressed("Enter") || altInput.pressed("Enter")) && this.stateTimer > 0.3) {
+    if (input.pressed("Enter") && this.stateTimer > 0.3) {
       this._submitName();
       return;
     }
@@ -11346,10 +11525,10 @@ class GameStateMachine {
     }
 
     // --- Gamepad D-pad ---
-    const upP = input.pressed("ArrowUp") || altInput.pressed("ArrowUp");
-    const downP = input.pressed("ArrowDown") || altInput.pressed("ArrowDown");
-    const upH = input.held("ArrowUp") || altInput.held("ArrowUp");
-    const downH = input.held("ArrowDown") || altInput.held("ArrowDown");
+    const upP = input.pressed("ArrowUp");
+    const downP = input.pressed("ArrowDown");
+    const upH = input.held("ArrowUp");
+    const downH = input.held("ArrowDown");
 
     if (upP) {
       this.nameLetterIdx = (this.nameLetterIdx + 1) % 26;
@@ -11374,13 +11553,13 @@ class GameStateMachine {
     }
 
     // Gamepad A → confirm letter
-    const gpA = input.pressed("_gpA") || altInput.pressed("_gpA");
+    const gpA = input.pressed("_gpA");
     if (gpA && this.nameInput.length < 8) {
       this.nameInput += String.fromCharCode(65 + this.nameLetterIdx);
       g.audio.menuSelect();
     }
     // Gamepad B → delete
-    const gpB = input.pressed("_gpB") || altInput.pressed("_gpB");
+    const gpB = input.pressed("_gpB");
     if (gpB && this.nameInput.length > 0) {
       this.nameInput = this.nameInput.slice(0, -1);
     }
@@ -11533,7 +11712,18 @@ class Game {
     this._setupStoryDragDrop();
   }
   _loadStoryImages() {
-    // Try loading from story/ folder + localStorage overrides
+    // Map story scenes to actual sprite filenames in sprites/Story/
+    const storyFileMap = {
+      story_0: null, // Prologue uses procedural illustration (black unicorn)
+      story_1: "sprites/Story/unicorn_gnome_friend.png",
+      story_2: "sprites/Story/unicorn_mericorn.png",
+      story_3: "sprites/Story/hawk_unicorn.png",
+      story_4: "sprites/Story/flower_kitticorn.png",
+      story_5: "sprites/Story/mouse.png",
+      story_6: "sprites/Story/mousicorn_pharoahcat.png",
+      story_7: "sprites/Story/unicorn_mouse copy.png",
+      story_8: "sprites/Story/end_story_friends.png"
+    };
     for (let i = 0; i <= 8; i++) {
       const key = "story_" + i;
       // Check localStorage first (drag-dropped images persist here)
@@ -11543,13 +11733,15 @@ class Game {
         img.src = stored;
         img.onload = () => { this.storyImages[key] = img; };
       }
-      // Also try loading from story/ folder (won't error if missing)
-      const fileImg = new Image();
-      fileImg.src = "story/" + key + ".png";
-      fileImg.onload = () => {
-        // Only use file version if no localStorage override
-        if (!this.storyImages[key]) this.storyImages[key] = fileImg;
-      };
+      // Load from sprites/Story/ folder
+      const filePath = storyFileMap[key];
+      if (filePath) {
+        const fileImg = new Image();
+        fileImg.src = filePath;
+        fileImg.onload = () => {
+          if (!this.storyImages[key]) this.storyImages[key] = fileImg;
+        };
+      }
     }
   }
   _setupStoryDragDrop() {
@@ -12245,10 +12437,16 @@ class Game {
       }
     }
 
-    // Instructions
+    // Instructions (show controls for active player)
     c.font = "9px monospace";
     c.fillStyle = "rgba(255,255,255,0.4)";
-    c.fillText("\u25C0\u25B6  SELECT     ENTER  CONFIRM     ESC  BACK", CFG.W/2, CFG.H - 18);
+    if (activeSlot === 0) {
+      c.fillText("\u25C0\u25B6  SELECT     ENTER  CONFIRM     ESC  BACK", CFG.W/2, CFG.H - 18);
+    } else if (activeSlot === 1) {
+      c.fillText("A/D  SELECT     E  CONFIRM     ESC  BACK", CFG.W/2, CFG.H - 18);
+    } else {
+      c.fillText("D-PAD  SELECT     A  CONFIRM     ESC  BACK", CFG.W/2, CFG.H - 18);
+    }
 
     c.restore();
   }
@@ -12344,12 +12542,14 @@ class Game {
 
     // Check for custom image
     const customImg = this.storyImages[scene.imageKey];
-    let textStartY = 50;
+    const hasImage = customImg && customImg.complete && customImg.naturalWidth > 0;
 
-    if (customImg && customImg.complete) {
-      // Draw custom image (centered, fit within top portion)
-      const maxW = CFG.W - 20;
-      const maxH = CFG.H * 0.4;
+    if (hasImage) {
+      // Draw image prominently in the upper portion, text below
+      const imgAreaTop = 30;
+      const imgAreaH = CFG.H * 0.5;
+      const maxW = CFG.W * 0.7;
+      const maxH = imgAreaH - 10;
       const imgAspect = customImg.width / customImg.height;
       let drawW, drawH;
       if (imgAspect > maxW / maxH) {
@@ -12360,20 +12560,29 @@ class Game {
         drawW = maxH * imgAspect;
       }
       const imgX = (CFG.W - drawW) / 2;
-      const imgY = 35;
-      // Fade in with phase 0
-      if (sm.storyPhase === 0) {
-        c.globalAlpha = Math.min(1, gt / 1.5);
-      }
-      // Rounded border effect
+      const imgY = imgAreaTop + (imgAreaH - drawH) / 2;
+      const fadeAlpha = sm.storyPhase === 0 ? Math.min(1, gt / 1.5) : 1;
+
       c.save();
-      c.strokeStyle = "rgba(255,255,255,0.3)";
-      c.lineWidth = 2;
-      c.strokeRect(imgX - 1, imgY - 1, drawW + 2, drawH + 2);
+      // Soft glow behind image
+      const glowCx = imgX + drawW / 2;
+      const glowCy = imgY + drawH / 2;
+      const glowR = Math.max(drawW, drawH) * 0.6;
+      const glow = c.createRadialGradient(glowCx, glowCy, glowR * 0.1, glowCx, glowCy, glowR);
+      glow.addColorStop(0, "rgba(180,160,255,0.35)");
+      glow.addColorStop(0.5, "rgba(120,100,220,0.1)");
+      glow.addColorStop(1, "rgba(80,60,180,0)");
+      c.globalAlpha = fadeAlpha;
+      c.fillStyle = glow;
+      c.fillRect(glowCx - glowR, glowCy - glowR, glowR * 2, glowR * 2);
+      // Draw image at full opacity
+      c.globalAlpha = fadeAlpha;
       c.drawImage(customImg, imgX, imgY, drawW, drawH);
-      c.globalAlpha = 1;
+      // Rounded border
+      c.strokeStyle = "rgba(255,255,255,0.25)";
+      c.lineWidth = 2;
+      c.strokeRect(imgX, imgY, drawW, drawH);
       c.restore();
-      textStartY = imgY + drawH + 12;
     } else {
       // Fallback: canvas illustration
       this.drawStoryIllustration(c, scene.illustrationTheme, gt);
@@ -12385,20 +12594,20 @@ class Game {
 
     // Fade in overlay for phase 0
     if (sm.storyPhase === 0) {
-      const fadeAlpha = Math.min(1, gt / 1.5);
-      c.globalAlpha = fadeAlpha;
+      c.globalAlpha = Math.min(1, gt / 1.5);
     }
 
     // Title
     c.font = "bold 16px monospace";
     c.fillStyle = "#ffcc44";
-    c.fillText(scene.title, CFG.W/2, customImg ? textStartY : 20);
-    const titleOffset = customImg ? textStartY + 20 : 42;
+    c.fillText(scene.title, CFG.W/2, hasImage ? 12 : 20);
+    // Position text below image if present, otherwise near top
+    const titleOffset = hasImage ? Math.floor(CFG.H * 0.53) + 10 : 42;
 
     // Text lines
     const lines = this.playerCount >= 2 ? scene.text2P : scene.text1P;
-    const lineH = 18;
-    c.font = "10px monospace";
+    const lineH = hasImage ? 15 : 18;
+    c.font = hasImage ? "9px monospace" : "10px monospace";
 
     for (let i = 0; i < lines.length; i++) {
       const lineY = titleOffset + i * lineH;
@@ -12415,6 +12624,9 @@ class Game {
         .replace(/\{P2\}/g, this.playerNames[1])
         .replace(/\{P3\}/g, this.playerNames[2] || "FAYE")
         .replace(/\{P4\}/g, this.playerNames[3] || "PIP");
+      // Text with dark outline for readability over image
+      c.fillStyle = "rgba(0,0,0,0.6)";
+      c.fillText(text, CFG.W/2 + 1, lineY + 1);
       c.fillStyle = text === "THE END" ? "#ffcc44" : "#ddddee";
       c.fillText(text, CFG.W/2, lineY);
     }
@@ -12426,13 +12638,6 @@ class Game {
       c.font = "bold 10px monospace";
       c.fillStyle = "#aaaaff";
       c.fillText("PRESS  ENTER  TO  CONTINUE", CFG.W/2, CFG.H - 20);
-    }
-
-    // Drop hint (subtle, always visible in story mode)
-    if (!customImg) {
-      c.font = "8px monospace";
-      c.fillStyle = "rgba(255,255,255,0.2)";
-      c.fillText("DROP IMAGE HERE TO ADD ART", CFG.W/2, CFG.H - 8);
     }
 
     c.restore();
@@ -12853,16 +13058,31 @@ class Game {
     if (showUnderwaterTint) {
       c.fillStyle = "rgba(10,40,80,0.15)";
       c.fillRect(0, 0, CFG.W, CFG.H);
-      // Animated bubble columns
+      // Animated bubble columns — multiple sizes rising at different speeds
       const gt = this.gameTime;
-      for (let i = 0; i < 6; i++) {
-        const bx = (i * 83 + 40) % CFG.W;
-        const by = CFG.H - ((gt * 30 + i * 50) % (CFG.H + 20));
-        const br = 1.5 + Math.sin(gt * 3 + i) * 0.5;
-        c.fillStyle = "rgba(150,200,255,0.15)";
+      for (let i = 0; i < 14; i++) {
+        const bx = (i * 47 + 20) % CFG.W;
+        const speed = 20 + (i % 3) * 15;
+        const by = CFG.H - ((gt * speed + i * 40) % (CFG.H + 30));
+        const br = 1 + (i % 4) * 0.7 + Math.sin(gt * 3 + i) * 0.4;
+        const wobble = Math.sin(gt * 1.5 + i * 1.7) * 6;
+        const alpha = 0.08 + (i % 3) * 0.04;
+        // Bubble outline
+        c.strokeStyle = "rgba(150,200,255," + (alpha + 0.05) + ")";
+        c.lineWidth = 0.5;
         c.beginPath();
-        c.arc(bx + Math.sin(gt * 2 + i * 1.3) * 5, by, br, 0, Math.PI*2);
+        c.arc(bx + wobble, by, br, 0, Math.PI*2);
+        c.stroke();
+        // Bubble fill
+        c.fillStyle = "rgba(150,200,255," + alpha + ")";
         c.fill();
+        // Highlight
+        if (br > 1.5) {
+          c.fillStyle = "rgba(255,255,255," + (alpha * 0.6) + ")";
+          c.beginPath();
+          c.arc(bx + wobble - br * 0.3, by - br * 0.3, br * 0.2, 0, Math.PI*2);
+          c.fill();
+        }
       }
     }
 

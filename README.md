@@ -17,16 +17,47 @@ A TMNT-style arcade beat-em-up platformer featuring four playable unicorn charac
 | P3 | Piggicorn | OINK | Powerful |
 | P4 | Mousicorn | PIP | Agile |
 
+## How to Play Multiplayer
+
+1. **Title Screen** — Press Enter or Start to begin
+2. **Player Select** — Use Up/Down to choose 1-4 players, press Enter/Start to confirm
+3. **Character Select** — Each player picks a character with Left/Right, confirm with Enter/A button
+   - P1 picks first, then P2, P3, P4 in order
+   - P1's keyboard controls P3/P4 character select if they don't have a gamepad
+   - Press Escape to go back to the previous player's pick
+4. **Name Entry** — Type a name on keyboard or use D-pad Up/Down to scroll letters, A to add, B to delete, Start/Enter to confirm
+   - P1's keyboard works as fallback for P3/P4 name entry too
+   - Press Enter with the default name to skip quickly
+5. **Story** — Press Enter/Start/A to advance through story scenes
+6. **Gameplay** — Co-op! Shared lives pool. If you die, you respawn near the nearest alive player
+
 ## Controls
 
-| Action | P1 (Keyboard) | P2 (Keyboard) | P3/P4 |
-|--------|--------------|--------------|-------|
-| Move | Arrow Keys | WASD | Gamepad Only |
-| Jump | Space | W | Gamepad A |
-| Attack | Shift | Q / F / X | Gamepad B |
-| Pause | Enter | Enter | Start |
+### Keyboard
 
-All players can also use Gamepads 0-3.
+| Action | P1 | P2 |
+|--------|----|----|
+| Move | Arrow Keys | WASD |
+| Jump | Space | Q |
+| Shoot | Left Shift | F |
+| Poop | P or Right Shift | X |
+| Confirm / Start | Enter | E |
+
+P3 and P4 have no keyboard bindings — they require gamepads.
+P1's keyboard is used as a fallback for P3/P4 during menus (character select, name entry).
+
+### Gamepad (all players)
+
+Each player maps to a gamepad index: P1 = gamepad 0, P2 = gamepad 1, P3 = gamepad 2, P4 = gamepad 3.
+
+| Action | Button |
+|--------|--------|
+| Move | Left Stick or D-pad |
+| Jump | A button |
+| Shoot | B button |
+| Poop | Down + B |
+| Confirm / Start | Start (button 9) |
+| Code Entry | Select (button 8) |
 
 ## Features
 

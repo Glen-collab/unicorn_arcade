@@ -11430,10 +11430,12 @@ class GameStateMachine {
     const g = this.game;
     const slot = this.charSelectSlot;
     const input = g.inputs[slot] || g.input;
+    // P1 keyboard fallback for P3/P4 (slots 2-3 have no keyboard mapping)
+    const kb = slot >= 2 ? g.input : null;
 
-    const leftP = input.pressed("ArrowLeft");
-    const rightP = input.pressed("ArrowRight");
-    const enterP = input.pressed("Enter");
+    const leftP = input.pressed("ArrowLeft") || (kb && kb.pressed("ArrowLeft"));
+    const rightP = input.pressed("ArrowRight") || (kb && kb.pressed("ArrowRight"));
+    const enterP = input.pressed("Enter") || (kb && kb.pressed("Enter"));
     const gpA = input.pressed("_gpA");
     const escP = input.pressed("Escape") || g.input.pressed("Escape");
 
@@ -11490,9 +11492,11 @@ class GameStateMachine {
     const g = this.game;
     const slotIdx = this.nameEntrySlot - 1;
     const input = g.inputs[slotIdx] || g.input;
+    // P1 keyboard fallback for P3/P4 (slots 2-3 have no keyboard mapping)
+    const kb = slotIdx >= 2 ? g.input : null;
 
-    // --- Keyboard input ---
-    const letter = input.consumeLetter();
+    // --- Keyboard input (use P1's consumeLetter as fallback for P3/P4) ---
+    const letter = input.consumeLetter() || (kb ? kb.consumeLetter() : "");
     if (letter === "ESCAPE") {
       // Go back
       if (this.nameEntrySlot > 1) {
@@ -11514,7 +11518,7 @@ class GameStateMachine {
       return;
     }
     // Enter key submits name (keyboard or gamepad Start)
-    if (input.pressed("Enter") && this.stateTimer > 0.3) {
+    if ((input.pressed("Enter") || (kb && kb.pressed("Enter"))) && this.stateTimer > 0.3) {
       this._submitName();
       return;
     }
@@ -11524,11 +11528,11 @@ class GameStateMachine {
       g.audio.menuSelect();
     }
 
-    // --- Gamepad D-pad ---
-    const upP = input.pressed("ArrowUp");
-    const downP = input.pressed("ArrowDown");
-    const upH = input.held("ArrowUp");
-    const downH = input.held("ArrowDown");
+    // --- Gamepad D-pad (with P1 keyboard fallback for P3/P4) ---
+    const upP = input.pressed("ArrowUp") || (kb && kb.pressed("ArrowUp"));
+    const downP = input.pressed("ArrowDown") || (kb && kb.pressed("ArrowDown"));
+    const upH = input.held("ArrowUp") || (kb && kb.held("ArrowUp"));
+    const downH = input.held("ArrowDown") || (kb && kb.held("ArrowDown"));
 
     if (upP) {
       this.nameLetterIdx = (this.nameLetterIdx + 1) % 26;
